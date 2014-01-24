@@ -6,7 +6,8 @@ TEMPLATE = app
 TARGET = miner-cpu
 INCLUDEPATH += .
 QT += network
+CONFIG += c++11
 
 # Input
-HEADERS += sha256sum.h
-SOURCES += main.cpp sha256sum.c
+HEADERS += sha256sum.h Sha256.h
+SOURCES += main.cpp sha256sum.c Sha256.cpp

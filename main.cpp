@@ -1,4 +1,5 @@
 #include "sha256sum.h"
+#include "Sha256.h"
 
 #include <QCoreApplication>
 #include <QNetworkAccessManager>
@@ -161,6 +162,9 @@ int main( int argc, char* argv[] )
    qDebug() << header.toHex();
    qDebug() << target.toHex();
 
+   Sha256 headerHash;
+   headerHash.update( header.data(), CHAR_BIT*header.size() );
+
    uint8_t sum[32] = {};
    uint32_t nonce;
    for( nonce = 0; ; ++nonce )
@@ -169,13 +173,14 @@ int main( int argc, char* argv[] )
          qDebug() << hex << nonce;
 
       uint32_t leNonce = qToLittleEndian( nonce );
-      QByteArray msg = header + QByteArray(reinterpret_cast<char*>(&leNonce),sizeof(leNonce));
 
-      sha256sum( reinterpret_cast<const uint8_t*>(msg.data()),
-                 CHAR_BIT*msg.size(),
-                 sum );
+      Sha256 hash1( headerHash );
+      hash1.update( &leNonce, CHAR_BIT*sizeof(leNonce) );
+      hash1.digest( sum );
 
-      sha256sum( sum, CHAR_BIT*sizeof(sum), sum );
+      Sha256 hash2;
+      hash2.update( sum, CHAR_BIT*sizeof(sum) );
+      hash2.digest( sum );
 
       // Quick test for good hash
       if( reinterpret_cast<uint32_t*>(sum)[7] != 0 )
