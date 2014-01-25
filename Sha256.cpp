@@ -27,12 +27,7 @@ static const uint32_t K[] = {
    0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
 };
 
-template<typename T>
-inline
-T rotateRight( T x, int n )
-{
-   return ((x >> n) | (x << (sizeof(x)*CHAR_BIT-n)));
-}
+#define ROTATE_RIGHT(x,n) ((x >> n) | (x << (sizeof(x)*CHAR_BIT-n)))
 
 static int isBigEndian()
 {
@@ -154,8 +149,8 @@ void Sha256::_hash( int blockIdx )
    // Compute the extended message
    for( int j = 16; j < 64; ++j )
    {
-      uint32_t s0 = rotateRight(w[j-15],7) ^ rotateRight(w[j-15],18) ^ (w[j-15] >> 3);
-      uint32_t s1 = rotateRight(w[j-2],17) ^ rotateRight(w[j-2],19)  ^ (w[j-2] >> 10);
+      uint32_t s0 = ROTATE_RIGHT(w[j-15],7) ^ ROTATE_RIGHT(w[j-15],18) ^ (w[j-15] >> 3);
+      uint32_t s1 = ROTATE_RIGHT(w[j-2],17) ^ ROTATE_RIGHT(w[j-2],19)  ^ (w[j-2] >> 10);
       w[j] = s1 + w[j-7] + s0 + w[j-16];
    }
 
@@ -164,8 +159,8 @@ void Sha256::_hash( int blockIdx )
    {
       uint32_t Ch  = (e & f) ^ (~e & g);
       uint32_t Maj = (a & b) ^ (a & c) ^ (b & c);
-      uint32_t S0  = rotateRight(a,2) ^ rotateRight(a,13) ^ rotateRight(a,22);
-      uint32_t S1  = rotateRight(e,6) ^ rotateRight(e,11) ^ rotateRight(e,25);
+      uint32_t S0  = ROTATE_RIGHT(a,2) ^ ROTATE_RIGHT(a,13) ^ ROTATE_RIGHT(a,22);
+      uint32_t S1  = ROTATE_RIGHT(e,6) ^ ROTATE_RIGHT(e,11) ^ ROTATE_RIGHT(e,25);
 
       uint32_t t1 = h + S1 + Ch + K[j] + w[j];
       uint32_t t2 = S0 + Maj;
