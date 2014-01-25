@@ -19,6 +19,8 @@
 const char RPC_USERNAME[] = "jrmrcoin";
 const char RPC_PASSWORD[] = "ffb137";
 
+static QTextStream outs( stdout );
+
 // Given hex-encoded string, reverse bytes
 void reverseHexBytes( QByteArray& ba )
 {
@@ -167,10 +169,14 @@ int main( int argc, char* argv[] )
 
    uint8_t sum[32] = {};
    uint32_t nonce;
+   QTime time;
+   time.start();
    for( nonce = 0; ; ++nonce )
    {
       if( nonce % 0x00100000 == 0 )
-         qDebug() << hex << nonce;
+      {
+         outs << "\r" << static_cast<double>(nonce)/time.elapsed() << " kH/s" << flush;
+      }
 
       uint32_t leNonce = qToLittleEndian( nonce );
 
