@@ -155,25 +155,46 @@ void Sha256::_hash( int blockIdx )
    }
 
    // SHA-256 compression function, 64 rounds
-   for( int j = 0; j < 64; ++j )
-   {
-      uint32_t Ch  = (e & f) ^ (~e & g);
-      uint32_t Maj = (a & b) ^ (a & c) ^ (b & c);
-      uint32_t S0  = ROTATE_RIGHT(a,2) ^ ROTATE_RIGHT(a,13) ^ ROTATE_RIGHT(a,22);
-      uint32_t S1  = ROTATE_RIGHT(e,6) ^ ROTATE_RIGHT(e,11) ^ ROTATE_RIGHT(e,25);
+#define S0(A) (ROTATE_RIGHT(A,2) ^ ROTATE_RIGHT(A,13) ^ ROTATE_RIGHT(A,22))
+#define S1(E) (ROTATE_RIGHT(E,6) ^ ROTATE_RIGHT(E,11) ^ ROTATE_RIGHT(E,25))
+#define CH(E,F,G) ((E & F) ^ (~E & G))
+#define MAJ(A,B,C) ((A & B) ^ (A & C) ^ (B & C))
 
-      uint32_t t1 = h + S1 + Ch + K[j] + w[j];
-      uint32_t t2 = S0 + Maj;
+#define SHA_ROUND( A, B, C, D, E, F, G, H, N ) \
+do { \
+   t1 = H + S1(E) + CH(E,F,G) + K[N] + w[N]; \
+   H = t1 + S0(A) + MAJ(A,B,C);\
+   D = D + t1; \
+} while( false )
 
-      h = g;
-      g = f;
-      f = e;
-      e = d + t1;
-      d = c;
-      c = b;
-      b = a;
-      a = t1 + t2;
-   }
+#define SHA_ROUNDS_8( N ) \
+do { \
+   SHA_ROUND(a,b,c,d,e,f,g,h,N); \
+   SHA_ROUND(h,a,b,c,d,e,f,g,N+1); \
+   SHA_ROUND(g,h,a,b,c,d,e,f,N+2); \
+   SHA_ROUND(f,g,h,a,b,c,d,e,N+3); \
+   SHA_ROUND(e,f,g,h,a,b,c,d,N+4); \
+   SHA_ROUND(d,e,f,g,h,a,b,c,N+5); \
+   SHA_ROUND(c,d,e,f,g,h,a,b,N+6); \
+   SHA_ROUND(b,c,d,e,f,g,h,a,N+7); \
+} while( false )
+
+   uint32_t t1;
+   SHA_ROUNDS_8( 8*0 );
+   SHA_ROUNDS_8( 8*1 );
+   SHA_ROUNDS_8( 8*2 );
+   SHA_ROUNDS_8( 8*3 );
+   SHA_ROUNDS_8( 8*4 );
+   SHA_ROUNDS_8( 8*5 );
+   SHA_ROUNDS_8( 8*6 );
+   SHA_ROUNDS_8( 8*7 );
+
+#undef S0
+#undef S1
+#undef CH
+#undef MAJ
+#undef SHA_ROUND
+#undef SHA_ROUNDS_8
 
    // Compute intermediate hash
    _hashVals[0] += a;
