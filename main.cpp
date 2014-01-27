@@ -174,7 +174,7 @@ int main( int argc, char* argv[] )
    {
       if( nonce % 0x00100000 == 0 )
       {
-         outs << "\r" << static_cast<double>(nonce)/time.elapsed() << " kH/s" << flush;
+         outs << "\r" << static_cast<double>(0x100000)/time.restart() << " kH/s" << flush;
       }
 
       uint32_t leNonce = qToLittleEndian( nonce );
