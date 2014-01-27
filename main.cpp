@@ -164,7 +164,7 @@ int main( int argc, char* argv[] )
          break;
    }
 
-   qDebug() << "Found nonce" << hex << nonce;
+   qDebug() << "\nFound nonce" << hex << nonce;
    printSum( sum );
 
    return 0;

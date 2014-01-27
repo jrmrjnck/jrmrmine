@@ -140,10 +140,10 @@ void Sha256::_hash( int blockIdx )
    // Copy the first 16 words from the message block
    for( int j = 0; j < 16; ++j )
    {
-      w[j]  = msg[j*4+0] << 24;
-      w[j] |= msg[j*4+1] << 16;
-      w[j] |= msg[j*4+2] << 8;
-      w[j] |= msg[j*4+3];
+      w[j]  = msg[j*4+0] << 8*3;
+      w[j] |= msg[j*4+1] << 8*2;
+      w[j] |= msg[j*4+2] << 8*1;
+      w[j] |= msg[j*4+3] << 8*0;
    }
 
    // Compute the extended message
