@@ -1,4 +1,5 @@
 #include "Sha256.h"
+#include "JsonRpc.h"
 
 #include <QCoreApplication>
 #include <QNetworkAccessManager>
@@ -104,36 +105,10 @@ int main( int argc, char* argv[] )
 {
    QCoreApplication cpuMiner( argc, argv );
 
-   QNetworkAccessManager netManager;
-
-   QNetworkRequest req( QUrl("http://127.0.0.1:8332") );
-
-   // Encode RPC username and password
-   QByteArray authPair( RPC_USERNAME );
-   authPair.append( ":" );
-   authPair.append( RPC_PASSWORD );
-   QByteArray authHeader( "Basic " );
-   authHeader.append( authPair.toBase64() );
-
-   // Set HTTP Headers
-   req.setRawHeader( "Authorization", authHeader );
-   req.setHeader( QNetworkRequest::ContentTypeHeader, "application/json" );
-
-   // Create the JSON request
-   QJsonObject reqObj;
-   reqObj.insert( "method", QString("getwork") );
-   reqObj.insert( "params", QJsonArray() );
-   QByteArray reqData = QJsonDocument(reqObj).toJson(QJsonDocument::Compact);
-
-   // Post request and wait for reply
-   QNetworkReply* reply = netManager.post( req, reqData );
-   QEventLoop loop;
-   QObject::connect( reply, SIGNAL(readyRead()), &loop, SLOT(quit()) );
-
-   loop.exec();
-
-   QJsonDocument replyDoc = QJsonDocument::fromJson( reply->readAll() );
-   QJsonObject resObj = replyDoc.object().value( "result" ).toObject();
+   JsonRpc rpc( "http://127.0.0.1:8332", RPC_USERNAME, RPC_PASSWORD );
+   QJsonObject data;
+   data.insert( "params", QJsonArray() );
+   QJsonObject resObj = rpc.call( "getwork", data );
 
    // Big-endian for easy reading
    //QByteArray version = "00000001";

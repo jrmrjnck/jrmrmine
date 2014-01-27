@@ -9,5 +9,5 @@ QT += network
 CONFIG += c++11
 
 # Input
-HEADERS += Sha256.h
-SOURCES += main.cpp Sha256.cpp
+HEADERS += Sha256.h JsonRpc.h
+SOURCES += main.cpp Sha256.cpp JsonRpc.cpp
