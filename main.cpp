@@ -110,22 +110,6 @@ int main( int argc, char* argv[] )
    data.insert( "params", QJsonArray() );
    QJsonObject resObj = rpc.call( "getwork", data );
 
-   // Big-endian for easy reading
-   //QByteArray version = "00000001";
-   //QByteArray hashPrevBlock = "00000000000008a3a41b85b8b29ad444def299fee21793cd8b9e567eab02cd81";
-   //QByteArray hashMerkleRoot = "2b12fcf1b09288fcaff797d71e950e71ae42b91e8bdb2304758dfcffc2b620e3";
-   //QByteArray time = "4dd7f5c7";
-   //QByteArray bits = "1a44b9f2";
-   //QByteArray target = bitsToTarget( bits.toUInt(NULL,16) );
-
-   //reverseHexBytes( version );
-   //reverseHexBytes( hashPrevBlock );
-   //reverseHexBytes( hashMerkleRoot );
-   //reverseHexBytes( time );
-   //reverseHexBytes( bits );
-   //std::reverse( target.begin(), target.end() );
-
-   //QByteArray header = version + hashPrevBlock + hashMerkleRoot + time + bits;
    QByteArray header = resObj.value("data").toString().toLocal8Bit();
    header = QByteArray::fromHex( header );
    swapEndianness( header );
