@@ -1,4 +1,3 @@
-#include "sha256sum.h"
 #include "Sha256.h"
 
 #include <QCoreApplication>
