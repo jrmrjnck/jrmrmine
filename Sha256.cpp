@@ -227,7 +227,7 @@ void Sha256::digest( uint8_t* output )
    // Set message length
    int64_t bits = _msgBits;
    pad = _msgBlocks.back() + MSG_BLOCK_BYTES - sizeof(bits);
-   for( int i = 0; i < sizeof(bits); ++i )
+   for( unsigned i = 0; i < sizeof(bits); ++i )
    {
       pad[i] = (bits >> (8*(7-i))) & 0xFF;
    }

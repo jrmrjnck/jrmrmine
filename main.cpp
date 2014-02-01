@@ -1,28 +1,27 @@
+/*
+ * Jonathan Doman
+ * jonathan.doman@gmail.com
+ */
+
 #include "Sha256.h"
 #include "JsonRpc.h"
-
-#include <QCoreApplication>
-#include <QNetworkAccessManager>
-#include <QNetworkRequest>
-#include <QNetworkReply>
-#include <QJsonDocument>
-#include <QJsonObject>
-#include <QJsonArray>
-#include <QTextStream>
-#include <QObject>
-#include <QtEndian>
 
 #include <cassert>
 #include <algorithm>
 #include <cstdio>
+#include <iostream>
+#include <string>
+#include <ctype.h>
+#include <climits>
+#include <chrono>
+
+using namespace std;
 
 const char RPC_USERNAME[] = "jrmrcoin";
 const char RPC_PASSWORD[] = "ffb137";
 
-static QTextStream outs( stdout );
-
 // Given hex-encoded string, reverse bytes
-void reverseHexBytes( QByteArray& ba )
+void reverseHexBytes( string& ba )
 {
    assert( ba.size() % 2 == 0 );
 
@@ -43,11 +42,11 @@ void reverseHexBytes( QByteArray& ba )
 
 // Reverse byte order within 4-byte words
 // Input must be binary encoded (not hex text)
-void swapEndianness( QByteArray& ba )
+void swapEndianness( string& ba )
 {
    assert( ba.size() % 4 == 0 );
 
-   for( int i = 0; i < ba.size(); i += 4 )
+   for( unsigned i = 0; i < ba.size(); i += 4 )
    {
       char t0 = ba[i+0];
       char t1 = ba[i+1];
@@ -69,10 +68,9 @@ void printSum( const uint8_t* sum )
 
 // See bitcoin/bitnum.h/CBigNum::SetCompact
 // Returns big-endian string
-QByteArray bitsToTarget( uint32_t bits )
+string bitsToTarget( uint32_t bits )
 {
-   QByteArray res( 32, 0 );
-   uint8_t* data = reinterpret_cast<uint8_t*>(res.data());
+   string res( 32, 0 );
 
    // Most significant 8 bits are the unsigned exponent, base 256
    int size = bits >> 24;
@@ -83,63 +81,86 @@ QByteArray bitsToTarget( uint32_t bits )
    if( size <= 3 )
    {
       word >>= 8*(3-size);
-      data[31] = word & 0xFF; word >>= 8;
-      data[30] = word & 0xFF; word >>= 8;
-      data[29] = word & 0xFF; word >>= 8;
-      data[28] = word & 0xFF;
+      res[31] = word & 0xFF; word >>= 8;
+      res[30] = word & 0xFF; word >>= 8;
+      res[29] = word & 0xFF; word >>= 8;
+      res[28] = word & 0xFF;
    }
    else
    {
       int shf = size - 3;
-      data[31-shf] = word & 0xFF; word >>= 8;
-      data[30-shf] = word & 0xFF; word >>= 8;
-      data[29-shf] = word & 0xFF; word >>= 8;
-      data[28-shf] = word & 0xFF;
+      res[31-shf] = word & 0xFF; word >>= 8;
+      res[30-shf] = word & 0xFF; word >>= 8;
+      res[29-shf] = word & 0xFF; word >>= 8;
+      res[28-shf] = word & 0xFF;
    }
 
    return res;
 }
 
-
-int main( int argc, char* argv[] )
+int hexToInt( char c )
 {
-   QCoreApplication cpuMiner( argc, argv );
+   c = tolower( c );
+   if( c >= '0' && c <= '9' )
+      return c - '0';
+   else if( c >= 'a' && c <= 'f' )
+      return c - 'a' + 10;
+   else
+      return -1;
+}
 
-   JsonRpc rpc( "http://127.0.0.1:8332", RPC_USERNAME, RPC_PASSWORD );
-   QJsonObject data;
-   data.insert( "params", QJsonArray() );
-   QJsonObject resObj = rpc.call( "getwork", data );
+void hexStringToBinary( string& str )
+{
+   assert( str.size() % 2 == 0 );
 
-   QByteArray header = resObj.value("data").toString().toLocal8Bit();
-   header = QByteArray::fromHex( header );
+   int o = 0;
+   for( unsigned i = 0; i < str.size(); i += 2 )
+   {
+      uint8_t val = hexToInt( str[i] );
+      val <<= 4;
+      val |= hexToInt( str[i+1] );
+      str[o++] = val;
+   }
+
+   str.resize( o );
+}
+
+int main( int /*argc*/, char** /*argv*/ )
+{
+   JsonRpc rpc( "http://localhost:8332", RPC_USERNAME, RPC_PASSWORD );
+   Json::Value data;
+   data["params"] = Json::arrayValue;
+   data = rpc.call( "getwork", data );
+
+   string header = data["data"].asString();
+   cout << "data: " << header << endl;
+   hexStringToBinary( header );
    swapEndianness( header );
-   header.truncate( 76 );
+   header.resize( 76 );
 
-   QByteArray target = resObj.value("target").toString().toLocal8Bit();
-   target = QByteArray::fromHex( target );
+   string target = data["target"].asString();
+   cout << "target: " << target << endl;
+   hexStringToBinary( target );
    swapEndianness( target );
-
-   qDebug() << header.toHex();
-   qDebug() << target.toHex();
 
    Sha256 headerHash;
    headerHash.update( header.data(), CHAR_BIT*header.size() );
 
    uint8_t sum[32] = {};
    uint32_t nonce;
-   QTime time;
-   time.start();
+   auto start = chrono::high_resolution_clock::now();
    for( nonce = 0; ; ++nonce )
    {
       if( nonce % 0x00100000 == 0 )
       {
-         outs << "\r" << static_cast<double>(0x100000)/time.restart() << " kH/s" << flush;
+         auto diff = chrono::high_resolution_clock::now() - start;
+         auto ms = chrono::duration_cast<chrono::milliseconds>(diff).count();
+         cout << '\r' << static_cast<double>(0x100000)/ms << " kH/s   " << flush;
+         start = chrono::high_resolution_clock::now();
       }
 
-      uint32_t leNonce = qToLittleEndian( nonce );
-
       Sha256 hash1( headerHash );
-      hash1.update( &leNonce, CHAR_BIT*sizeof(leNonce) );
+      hash1.update( &nonce, CHAR_BIT*sizeof(nonce) );
       hash1.digest( sum );
 
       Sha256 hash2;
@@ -164,7 +185,7 @@ int main( int argc, char* argv[] )
          break;
    }
 
-   qDebug() << "\nFound nonce" << hex << nonce;
+   cout << "\nFound nonce" << hex << nonce;
    printSum( sum );
 
    return 0;
