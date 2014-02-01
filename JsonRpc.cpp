@@ -10,6 +10,8 @@
 #include <stdexcept>
 #include <cstring>
 #include <cassert>
+#include <thread>
+#include <functional>
 
 using namespace std;
 
@@ -100,6 +102,7 @@ Json::Value JsonRpc::call( const std::string& method, const Json::Value& json )
 
    Json::Value copy( json );
    copy["method"] = method;
+   copy["id"] = static_cast<int>(hash<thread::id>()(this_thread::get_id()));
    Json::FastWriter writer;
    string data = writer.write( copy );
 
