@@ -128,18 +128,18 @@ void hexStringToBinary( string& str )
 int main( int /*argc*/, char** /*argv*/ )
 {
    JsonRpc rpc( "http://localhost:8332", RPC_USERNAME, RPC_PASSWORD );
-   Json::Value data;
-   data["params"] = Json::arrayValue;
-   data = rpc.call( "getwork", data );
+   Json::Value req;
+   req["params"] = Json::arrayValue;
+   auto resp = rpc.call( "getwork", req );
 
-   string header = data["data"].asString();
-   cout << "data: " << header << endl;
+   cout << resp << endl;
+
+   string header = resp["data"].asString();
    hexStringToBinary( header );
    swapEndianness( header );
    header.resize( 76 );
 
-   string target = data["target"].asString();
-   cout << "target: " << target << endl;
+   string target = resp["target"].asString();
    hexStringToBinary( target );
    swapEndianness( target );
 
@@ -186,8 +186,22 @@ int main( int /*argc*/, char** /*argv*/ )
          break;
    }
 
-   cout << "\nFound nonce" << hex << nonce;
-   printSum( sum );
+   // Set nonce value in return data
+   string retData = resp["data"].asString();
+   for( int i = 0; i < 4; ++i )
+   {
+      int byte = (nonce >> ((3-i)*8)) & 0xff;
+      char buf[3];
+      snprintf( buf, sizeof(buf), "%.2x", byte );
+      retData[152+2*i] = buf[0];
+      retData[153+2*i] = buf[1];
+   }
+
+   cout << retData << endl;
+
+   req["data"] = retData;
+   resp = rpc.call( "getwork", req );
+   cout << resp;
 
    return 0;
 }
