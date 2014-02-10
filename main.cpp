@@ -149,13 +149,14 @@ int main( int /*argc*/, char** /*argv*/ )
    uint8_t sum[32] = {};
    uint32_t nonce;
    auto start = chrono::high_resolution_clock::now();
+   const unsigned int INTERVAL = 0x00100000;
    for( nonce = 0; ; ++nonce )
    {
-      if( nonce % 0x00100000 == 0 )
+      if( nonce % INTERVAL == 0 )
       {
          auto diff = chrono::high_resolution_clock::now() - start;
          auto ms = chrono::duration_cast<chrono::milliseconds>(diff).count();
-         cout << '\r' << static_cast<double>(0x100000)/ms << " kH/s   " << flush;
+         cout << '\r' << static_cast<double>(INTERVAL)/ms << " kH/s   " << flush;
          start = chrono::high_resolution_clock::now();
       }
 
