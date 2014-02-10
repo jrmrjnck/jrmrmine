@@ -14,6 +14,7 @@
 #include <ctype.h>
 #include <climits>
 #include <chrono>
+#include <thread>
 
 using namespace std;
 
@@ -125,41 +126,12 @@ void hexStringToBinary( string& str )
    str.resize( o );
 }
 
-int main( int /*argc*/, char** /*argv*/ )
+bool searchNonce( const Sha256& headerHash, const std::string& target, uint32_t& nonceVal )
 {
-   JsonRpc rpc( "http://localhost:8332", RPC_USERNAME, RPC_PASSWORD );
-   Json::Value req;
-   req["params"] = Json::arrayValue;
-   auto resp = rpc.call( "getwork", req );
-
-   cout << resp << endl;
-
-   string header = resp["data"].asString();
-   hexStringToBinary( header );
-   swapEndianness( header );
-   header.resize( 76 );
-
-   string target = resp["target"].asString();
-   hexStringToBinary( target );
-   swapEndianness( target );
-
-   Sha256 headerHash;
-   headerHash.update( header.data(), CHAR_BIT*header.size() );
-
    uint8_t sum[32] = {};
-   uint32_t nonce;
-   auto start = chrono::high_resolution_clock::now();
-   const unsigned int INTERVAL = 0x00100000;
-   for( nonce = 0; ; ++nonce )
+   uint32_t nonce = 0;
+   for( long int c = 0; c <= UINT_MAX; ++c, ++nonce )
    {
-      if( nonce % INTERVAL == 0 )
-      {
-         auto diff = chrono::high_resolution_clock::now() - start;
-         auto ms = chrono::duration_cast<chrono::milliseconds>(diff).count();
-         cout << '\r' << static_cast<double>(INTERVAL)/ms << " kH/s   " << flush;
-         start = chrono::high_resolution_clock::now();
-      }
-
       Sha256 hash1( headerHash );
       hash1.update( &nonce, CHAR_BIT*sizeof(nonce) );
       hash1.digest( sum );
@@ -173,18 +145,43 @@ int main( int /*argc*/, char** /*argv*/ )
          continue;
 
       // Full comparison for meeting the target
-      bool success = false;
       for( int i = 31; i >= 0; --i )
       {
          if( sum[i] < target[i] )
          {
-            success = true;
-            break;
+            nonceVal = nonce;
+            return true;
          }
       }
-      if( success )
-         break;
    }
+
+   return false;
+}
+
+bool work( JsonRpc& rpc )
+{
+   Json::Value req;
+   req["params"] = Json::arrayValue;
+   auto resp = rpc.call( "getwork", req );
+
+   if( !resp.isMember("data") || !resp.isMember("target") )
+      return false;
+
+   string header = resp["data"].asString();
+   hexStringToBinary( header );
+   swapEndianness( header );
+   header.resize( 76 );
+
+   string target = resp["target"].asString();
+   hexStringToBinary( target );
+   swapEndianness( target );
+
+   Sha256 headerHash;
+   headerHash.update( header.data(), CHAR_BIT*header.size() );
+
+   uint32_t nonce = 0;
+   if( !searchNonce(headerHash,target,nonce) )
+      return true;
 
    // Set nonce value in return data
    string retData = resp["data"].asString();
@@ -197,11 +194,42 @@ int main( int /*argc*/, char** /*argv*/ )
       retData[153+2*i] = buf[1];
    }
 
-   cout << retData << endl;
-
    req["data"] = retData;
    resp = rpc.call( "getwork", req );
-   cout << resp;
+
+   return true;
+}
+
+void minerThread()
+{
+   JsonRpc rpc( "http://localhost:8332", RPC_USERNAME, RPC_PASSWORD );
+
+   int failCount = 0;
+   while( failCount < 10 )
+   {
+      if( !work(rpc) )
+         ++failCount;
+   }
+}
+
+int main( int /*argc*/, char** /*argv*/ )
+{
+   int numThreads = thread::hardware_concurrency();
+   if( numThreads == 0 )
+      numThreads = 4;
+   thread threads[numThreads];
+
+   for( auto& t : threads )
+   {
+      t = thread( minerThread );
+   }
+
+   cout << numThreads << " mining thread(s) started" << endl;
+
+   for( auto& t : threads )
+   {
+      t.join();
+   }
 
    return 0;
 }
