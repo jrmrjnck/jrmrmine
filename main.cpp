@@ -15,11 +15,12 @@
 #include <climits>
 #include <chrono>
 #include <thread>
+#include <atomic>
 
 using namespace std;
 
-const char RPC_USERNAME[] = "jrmrcoin";
-const char RPC_PASSWORD[] = "ffb137";
+const char RPC_USERNAME[] = "admin1";
+const char RPC_PASSWORD[] = "123";
 
 // Given hex-encoded string, reverse bytes
 void reverseHexBytes( string& ba )
@@ -126,12 +127,23 @@ void hexStringToBinary( string& str )
    str.resize( o );
 }
 
-bool searchNonce( const Sha256& headerHash, const std::string& target, uint32_t& nonceVal )
+bool searchNonce( const Sha256& headerHash, const std::string& target, uint32_t& nonce )
 {
    uint8_t sum[32] = {};
-   uint32_t nonce = 0;
+   nonce = 0;
+   auto start = chrono::system_clock::now();
+   const unsigned int INTERVAL = 0x00010000;
    for( long int c = 0; c <= UINT_MAX; ++c, ++nonce )
    {
+      // Periodically check whether the 1 sec limit has elapsed
+      if( (c % INTERVAL) == 0 )
+      {
+         auto diff = chrono::system_clock::now() - start;
+         auto ms = chrono::duration_cast<chrono::milliseconds>(diff).count();
+         if( ms >= 1000 )
+            return false;
+      }
+
       Sha256 hash1( headerHash );
       hash1.update( &nonce, CHAR_BIT*sizeof(nonce) );
       hash1.digest( sum );
@@ -148,20 +160,18 @@ bool searchNonce( const Sha256& headerHash, const std::string& target, uint32_t&
       for( int i = 31; i >= 0; --i )
       {
          if( sum[i] < target[i] )
-         {
-            nonceVal = nonce;
             return true;
-         }
       }
    }
 
    return false;
 }
 
+atomic_long hashCount;
+
 bool work( JsonRpc& rpc )
 {
    Json::Value req;
-   req["params"] = Json::arrayValue;
    auto resp = rpc.call( "getwork", req );
 
    if( !resp.isMember("data") || !resp.isMember("target") )
@@ -180,7 +190,9 @@ bool work( JsonRpc& rpc )
    headerHash.update( header.data(), CHAR_BIT*header.size() );
 
    uint32_t nonce = 0;
-   if( !searchNonce(headerHash,target,nonce) )
+   bool success = searchNonce( headerHash, target, nonce );
+   hashCount += nonce;
+   if( !success )
       return true;
 
    // Set nonce value in return data
@@ -194,22 +206,34 @@ bool work( JsonRpc& rpc )
       retData[153+2*i] = buf[1];
    }
 
+   printf( "Found nonce %s\n", retData.c_str() );
+
    req["data"] = retData;
    resp = rpc.call( "getwork", req );
 
    return true;
 }
 
-void minerThread()
+void minerThread( int tid )
 {
-   JsonRpc rpc( "http://localhost:8332", RPC_USERNAME, RPC_PASSWORD );
+   printf( "Thread %d started\n", tid );
+   JsonRpc rpc( "http://localhost:19001", RPC_USERNAME, RPC_PASSWORD );
 
    int failCount = 0;
    while( failCount < 10 )
    {
+      if( tid == 0 )
+      {
+         static long int lastCount = 0;
+         printf( "Hashes: %ld H/s\n", hashCount.load()-lastCount );
+         lastCount = hashCount.load();
+      }
+
       if( !work(rpc) )
          ++failCount;
    }
+
+   printf( "Thread %d finished\n", tid );
 }
 
 int main( int /*argc*/, char** /*argv*/ )
@@ -219,16 +243,16 @@ int main( int /*argc*/, char** /*argv*/ )
       numThreads = 4;
    thread threads[numThreads];
 
-   for( auto& t : threads )
+   for( int i = 0; i < numThreads; ++i )
    {
-      t = thread( minerThread );
+      threads[i] = thread( minerThread, i );
    }
 
    cout << numThreads << " mining thread(s) started" << endl;
 
-   for( auto& t : threads )
+   for( int i = 0; i < numThreads; ++i )
    {
-      t.join();
+      threads[i].join();
    }
 
    return 0;
