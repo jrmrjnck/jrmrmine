@@ -123,8 +123,15 @@ Json::Value JsonRpc::call( const std::string& method, const Json::Value& json )
 
    curl_easy_cleanup( curl );
 
-   // TODO: better error handling
-   assert( response.isMember("result") );
+   // Check the response
+   if( !response.isMember("result") || !response.isMember("error") || !response.isMember("id") )
+      throw runtime_error( "Invalid response received from JSON-RPC server" );
+
+   if( !response["error"].isNull() )
+      throw runtime_error( string("JSON-RPC Error: ") + response["error"].asString() );
+
+   if( response["id"] != copy["id"] )
+      throw runtime_error( "Received response with wrong ID" );
 
    return response["result"];
 }
