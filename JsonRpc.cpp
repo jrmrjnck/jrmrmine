@@ -74,11 +74,13 @@ size_t recvPostData( char* ptr, size_t size, size_t nmemb, void* userdata )
 }
 
 JsonRpc::JsonRpc( const std::string& url, 
+                  int port,
                   const std::string& username, 
                   const std::string& password )
- : _url(url),
-   _headers(NULL)
+ : _headers(NULL)
 {
+   _url = url + ":" + to_string( port );
+
    // Encode RPC username and password
    string authPair;
    authPair += username + ':' + password;

@@ -5,6 +5,7 @@
 
 #include "Sha256.h"
 #include "JsonRpc.h"
+#include "Settings.h"
 
 #include <cassert>
 #include <algorithm>
@@ -18,9 +19,6 @@
 #include <atomic>
 
 using namespace std;
-
-const char RPC_USERNAME[] = "admin1";
-const char RPC_PASSWORD[] = "123";
 
 // Given hex-encoded string, reverse bytes
 void reverseHexBytes( string& ba )
@@ -127,132 +125,21 @@ void hexStringToBinary( string& str )
    str.resize( o );
 }
 
-bool searchNonce( const Sha256& headerHash, const std::string& target, uint32_t& nonce )
+int main( int argc, char** argv )
 {
-   uint8_t sum[32] = {};
-   nonce = 0;
-   auto start = chrono::system_clock::now();
-   const unsigned int INTERVAL = 0x00010000;
-   for( long int c = 0; c <= UINT_MAX; ++c, ++nonce )
+   try
    {
-      // Periodically check whether the 1 sec limit has elapsed
-      if( (c % INTERVAL) == 0 )
-      {
-         auto diff = chrono::system_clock::now() - start;
-         auto ms = chrono::duration_cast<chrono::milliseconds>(diff).count();
-         if( ms >= 1000 )
-            return false;
-      }
+      Settings::init( argc, argv );
 
-      Sha256 hash1( headerHash );
-      hash1.update( &nonce, CHAR_BIT*sizeof(nonce) );
-      hash1.digest( sum );
+      JsonRpc rpc( Settings::RpcHost(), Settings::RpcPort(),
+                   Settings::RpcUser(), Settings::RpcPassword() );
 
-      Sha256 hash2;
-      hash2.update( sum, CHAR_BIT*sizeof(sum) );
-      hash2.digest( sum );
-
-      // Quick test for good hash
-      if( reinterpret_cast<uint32_t*>(sum)[7] != 0 )
-         continue;
-
-      // Full comparison for meeting the target
-      for( int i = 31; i >= 0; --i )
-      {
-         if( sum[i] < target[i] )
-            return true;
-      }
+      Json::Value reply = rpc.call( "getblocktemplate" );
+      cout << reply << endl;
    }
-
-   return false;
-}
-
-atomic_long hashCount;
-
-bool work( JsonRpc& rpc )
-{
-   Json::Value req;
-   auto resp = rpc.call( "getwork", req );
-
-   if( !resp.isMember("data") || !resp.isMember("target") )
-      return false;
-
-   string header = resp["data"].asString();
-   hexStringToBinary( header );
-   swapEndianness( header );
-   header.resize( 76 );
-
-   string target = resp["target"].asString();
-   hexStringToBinary( target );
-   swapEndianness( target );
-
-   Sha256 headerHash;
-   headerHash.update( header.data(), CHAR_BIT*header.size() );
-
-   uint32_t nonce = 0;
-   bool success = searchNonce( headerHash, target, nonce );
-   hashCount += nonce;
-   if( !success )
-      return true;
-
-   // Set nonce value in return data
-   string retData = resp["data"].asString();
-   for( int i = 0; i < 4; ++i )
+   catch( std::exception& e )
    {
-      int byte = (nonce >> ((3-i)*8)) & 0xff;
-      char buf[3];
-      snprintf( buf, sizeof(buf), "%.2x", byte );
-      retData[152+2*i] = buf[0];
-      retData[153+2*i] = buf[1];
-   }
-
-   printf( "Found nonce %s\n", retData.c_str() );
-
-   req["data"] = retData;
-   resp = rpc.call( "getwork", req );
-
-   return true;
-}
-
-void minerThread( int tid )
-{
-   printf( "Thread %d started\n", tid );
-   JsonRpc rpc( "http://localhost:19001", RPC_USERNAME, RPC_PASSWORD );
-
-   int failCount = 0;
-   while( failCount < 10 )
-   {
-      if( tid == 0 )
-      {
-         static long int lastCount = 0;
-         printf( "Hashes: %ld H/s\n", hashCount.load()-lastCount );
-         lastCount = hashCount.load();
-      }
-
-      if( !work(rpc) )
-         ++failCount;
-   }
-
-   printf( "Thread %d finished\n", tid );
-}
-
-int main( int /*argc*/, char** /*argv*/ )
-{
-   int numThreads = thread::hardware_concurrency();
-   if( numThreads == 0 )
-      numThreads = 4;
-   thread threads[numThreads];
-
-   for( int i = 0; i < numThreads; ++i )
-   {
-      threads[i] = thread( minerThread, i );
-   }
-
-   cout << numThreads << " mining thread(s) started" << endl;
-
-   for( int i = 0; i < numThreads; ++i )
-   {
-      threads[i].join();
+      cerr << "ERROR: " << e.what() << endl;
    }
 
    return 0;
