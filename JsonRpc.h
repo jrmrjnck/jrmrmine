@@ -21,7 +21,7 @@ public:
             const std::string& password );
    ~JsonRpc();
 
-   Json::Value call( const std::string& method, const Json::Value& json = Json::Value() );
+   Json::Value call( const std::string& method, const Json::Value& params = Json::Value() );
 
 private:
    std::string _url;

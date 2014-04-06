@@ -66,10 +66,9 @@ static std::string encodeBase64( std::string str )
 
 size_t recvPostData( char* ptr, size_t size, size_t nmemb, void* userdata )
 {
-   char** recvBuf = reinterpret_cast<char**>(userdata);
+   string& recvBuf = *reinterpret_cast<string*>(userdata);
    size_t bytes = size * nmemb;
-   *recvBuf = new char[bytes];
-   memcpy( *recvBuf, ptr, bytes );
+   recvBuf.append( ptr, bytes );
    return bytes;
 }
 
@@ -96,19 +95,24 @@ JsonRpc::~JsonRpc()
    curl_slist_free_all( _headers );
 }
 
-Json::Value JsonRpc::call( const std::string& method, const Json::Value& json )
+Json::Value JsonRpc::call( const std::string& method, const Json::Value& params )
 {
    auto curl = curl_easy_init();
    if( curl == NULL )
       throw std::runtime_error( "Failed to initialize cURL" );
 
-   Json::Value copy( json );
-   copy["method"] = method;
-   copy["id"] = static_cast<int>(hash<thread::id>()(this_thread::get_id()));
-   Json::FastWriter writer;
-   string data = writer.write( copy );
+   Json::Value req;
+   req["jsonrpc"] = "1.0";
+   req["id"]      = static_cast<unsigned int>(hash<thread::id>()(this_thread::get_id()));
+   req["method"]  = method;
+   req["params"]  = params;
 
-   char* recvData = NULL;
+   cout << "REQUEST: " << endl << req << endl;
+
+   Json::FastWriter writer;
+   string data = writer.write( req );
+
+   string recvData;
 
    curl_easy_setopt( curl, CURLOPT_URL, _url.c_str() );
    curl_easy_setopt( curl, CURLOPT_HTTPHEADER, _headers );
@@ -116,24 +120,34 @@ Json::Value JsonRpc::call( const std::string& method, const Json::Value& json )
    curl_easy_setopt( curl, CURLOPT_WRITEFUNCTION, recvPostData );
    curl_easy_setopt( curl, CURLOPT_WRITEDATA, &recvData );
 
-   curl_easy_perform( curl );
+   auto code = curl_easy_perform( curl );
+   if( code != CURLE_OK )
+      throw runtime_error( curl_easy_strerror(code) );
 
    Json::Reader reader;
    Json::Value response;
-   reader.parse( recvData, recvData+strlen(recvData), response );
-   delete [] recvData;
+   bool success = reader.parse( recvData, response );
+   cout << recvData.size() << endl << recvData << endl;
 
    curl_easy_cleanup( curl );
 
    // Check the response
-   if( !response.isMember("result") || !response.isMember("error") || !response.isMember("id") )
+   if( recvData.size() == 0 )
+      throw runtime_error( "No data received from server" );
+
+   if( !success )
+      throw runtime_error( reader.getFormatedErrorMessages() );
+
+   if( !response.isObject() || !response.isMember("result") || !response.isMember("error") || !response.isMember("id") )
       throw runtime_error( "Invalid response received from JSON-RPC server" );
 
    if( !response["error"].isNull() )
       throw runtime_error( string("JSON-RPC Error: ") + response["error"].asString() );
 
-   if( response["id"] != copy["id"] )
+   if( response["id"].asUInt() != req["id"].asUInt() )
       throw runtime_error( "Received response with wrong ID" );
+
+   cout << "REPLY: " << endl << response << endl;
 
    return response["result"];
 }
