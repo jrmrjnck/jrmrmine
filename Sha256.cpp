@@ -45,14 +45,14 @@ Sha256::Sha256()
 {
    // Set initial hash values
    // Fractional parts of the square roots of the first 8 primes
-   _hashVals[0] = 0x6a09e667;
-   _hashVals[1] = 0xbb67ae85;
-   _hashVals[2] = 0x3c6ef372;
-   _hashVals[3] = 0xa54ff53a;
-   _hashVals[4] = 0x510e527f;
-   _hashVals[5] = 0x9b05688c;
-   _hashVals[6] = 0x1f83d9ab;
-   _hashVals[7] = 0x5be0cd19;
+   _digest[0] = 0x6a09e667;
+   _digest[1] = 0xbb67ae85;
+   _digest[2] = 0x3c6ef372;
+   _digest[3] = 0xa54ff53a;
+   _digest[4] = 0x510e527f;
+   _digest[5] = 0x9b05688c;
+   _digest[6] = 0x1f83d9ab;
+   _digest[7] = 0x5be0cd19;
 }
 
 Sha256::Sha256( const Sha256& other )
@@ -68,7 +68,7 @@ Sha256::Sha256( const Sha256& other )
 
    for( int i = 0; i < 8; ++i )
    {
-      _hashVals[i] = other._hashVals[i];
+      _digest[i] = other._digest[i];
    }
 }
 
@@ -126,14 +126,14 @@ void Sha256::_hash( int blockIdx )
 {
    uint8_t* msg = _msgBlocks[blockIdx];
 
-   uint32_t a = _hashVals[0];
-   uint32_t b = _hashVals[1];
-   uint32_t c = _hashVals[2];
-   uint32_t d = _hashVals[3];
-   uint32_t e = _hashVals[4];
-   uint32_t f = _hashVals[5];
-   uint32_t g = _hashVals[6];
-   uint32_t h = _hashVals[7];
+   uint32_t a = _digest[0];
+   uint32_t b = _digest[1];
+   uint32_t c = _digest[2];
+   uint32_t d = _digest[3];
+   uint32_t e = _digest[4];
+   uint32_t f = _digest[5];
+   uint32_t g = _digest[6];
+   uint32_t h = _digest[7];
 
    // Compute message schedule
    uint32_t w[64];
@@ -197,17 +197,17 @@ do { \
 #undef SHA_ROUNDS_8
 
    // Compute intermediate hash
-   _hashVals[0] += a;
-   _hashVals[1] += b;
-   _hashVals[2] += c;
-   _hashVals[3] += d;
-   _hashVals[4] += e;
-   _hashVals[5] += f;
-   _hashVals[6] += g;
-   _hashVals[7] += h;
+   _digest[0] += a;
+   _digest[1] += b;
+   _digest[2] += c;
+   _digest[3] += d;
+   _digest[4] += e;
+   _digest[5] += f;
+   _digest[6] += g;
+   _digest[7] += h;
 }
 
-void Sha256::digest( uint8_t* output )
+void Sha256::digest( Digest& output )
 {
    assert( (_msgBits%8) == 0 && "Non byte aligned usage unsupported" );
 
@@ -243,13 +243,13 @@ void Sha256::digest( uint8_t* output )
    for( int i = 0; i < 8; ++i )
    {
       if( isBigEndian() )
-         *reinterpret_cast<uint32_t*>(&output[i*4]) = _hashVals[i];
+         *reinterpret_cast<uint32_t*>(&output[i*4]) = _digest[i];
       else
       {
-         output[i*4+0] = (_hashVals[i]) >> 24;
-         output[i*4+1] = (_hashVals[i] & 0x00ff0000) >> 16;
-         output[i*4+2] = (_hashVals[i] & 0x0000ff00) >> 8;
-         output[i*4+3] = (_hashVals[i] & 0x000000ff);
+         output[i*4+0] = (_digest[i]) >> 24;
+         output[i*4+1] = (_digest[i] & 0x00ff0000) >> 16;
+         output[i*4+2] = (_digest[i] & 0x0000ff00) >> 8;
+         output[i*4+3] = (_digest[i] & 0x000000ff);
       }
    }
 }

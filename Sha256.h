@@ -7,9 +7,20 @@
 
 #include <cstdint>
 #include <vector>
+#include <array>
 
 class Sha256
 {
+public:
+   struct Digest : public std::array<uint32_t,8>
+   {
+      Digest()
+      {
+         for( int i = 0; i < 8; ++i )
+            at(i) = 0;
+      }
+   };
+
 public:
    Sha256();
    ~Sha256();
@@ -18,7 +29,7 @@ public:
 
    void update( const void* data, int64_t bits );
 
-   void digest( uint8_t* output );
+   void digest( Digest& output );
 
 private:
    void _hash( int blockIdx );
@@ -28,7 +39,7 @@ private:
 
    int64_t _msgBits;
 
-   uint32_t _hashVals[8];
+   Digest _digest;
 };
 
 #endif // !SHA256_H

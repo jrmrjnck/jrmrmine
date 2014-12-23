@@ -127,7 +127,6 @@ Json::Value JsonRpc::call( const std::string& method, const Json::Value& params 
    Json::Reader reader;
    Json::Value response;
    bool success = reader.parse( recvData, response );
-   cout << recvData.size() << endl << recvData << endl;
 
    curl_easy_cleanup( curl );
 
@@ -142,7 +141,7 @@ Json::Value JsonRpc::call( const std::string& method, const Json::Value& params 
       throw runtime_error( "Invalid response received from JSON-RPC server" );
 
    if( !response["error"].isNull() )
-      throw runtime_error( string("JSON-RPC Error: ") + response["error"].asString() );
+      throw runtime_error( string("JSON-RPC Error: ") + response["error"]["message"].asString() );
 
    if( response["id"].asUInt() != req["id"].asUInt() )
       throw runtime_error( "Received response with wrong ID" );

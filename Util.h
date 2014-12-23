@@ -6,9 +6,9 @@
 #include <cstdint>
 
 void reverseHexBytes( std::string& ba );
-int64_t readInt( std::istream& ss, int size = 4 );
+int64_t readInt( std::istream& ss, size_t size = 4 );
 int64_t readVarInt( std::istream& ss );
-void writeInt( std::ostream& ss, int64_t n, int size = 4 );
+void writeInt( std::ostream& ss, int64_t n, size_t size = 4 );
 void writeVarInt( std::ostream& ss, int64_t n );
 void swapEndianness( std::string& ba );
 void printSum( const uint8_t* sum );

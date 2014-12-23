@@ -26,9 +26,9 @@ void reverseHexBytes( string& ba )
    }
 }
 
-int64_t readInt( std::istream& ss, int size )
+int64_t readInt( std::istream& ss, size_t size )
 {
-   assert( static_cast<unsigned int>(size) <= sizeof(int64_t) );
+   assert( size <= sizeof(int64_t) );
 
    // TODO: figure out better way to use stringstream
    string str( size*2, '\0' );
@@ -54,10 +54,10 @@ int64_t readVarInt( std::istream& ss )
    }
 }
 
-void writeInt( std::ostream& ss, int64_t n, int size )
+void writeInt( std::ostream& ss, int64_t n, size_t size )
 {
    ss << hex << setfill('0');
-   for( int i = 0; i < size; ++i )
+   for( unsigned i = 0; i < size; ++i )
    {
       unsigned int byte = n & 0xff;
       ss << setw(2) << byte;

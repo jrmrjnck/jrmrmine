@@ -15,9 +15,11 @@ QMAKE_CXXFLAGS_RELEASE += -O3 -funroll-loops
 HEADERS += Sha256.h\
            JsonRpc.h\
            Settings.h\
-           Util.h
+           Util.h\
+           Transaction.h
 SOURCES += main.cpp\
            Sha256.cpp\
            JsonRpc.cpp\
            Settings.cpp\
-           Util.cpp
+           Util.cpp\
+           Transaction.cpp
