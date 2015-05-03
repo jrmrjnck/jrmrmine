@@ -1,67 +1,68 @@
 #include "Settings.h"
 
-#include <boost/regex.hpp>
+#include <boost/program_options.hpp>
 
 #include <map>
 #include <fstream>
 #include <cassert>
-#include <regex>
 #include <iostream>
 
 using namespace std;
+namespace BoostProgOpt = boost::program_options;
 
-static std::map<std::string,std::string> _data;
+static BoostProgOpt::variables_map _varMap;
 
 void Settings::init( int argc, char** argv )
 {
-   // Load defaults
-   _data["rpchost"] = "http://localhost";
-   _data["rpcport"] = "18332";
+   BoostProgOpt::options_description generalOptions( "General Options" );
+   generalOptions.add_options()
+      ("help,h", "Print this help.")
+      ("config,c", BoostProgOpt::value<string>()->default_value(defaultConfigFile()), "Bitcoin Core configuration file to load.")
+      ;
 
-   // Load default configuration file
-   addConfigFile( defaultConfigFile() );
+   BoostProgOpt::options_description coreOptions( "Bitcoin Core Options" );
+   coreOptions.add_options()
+      ("rpchost", BoostProgOpt::value<string>()->default_value("http://localhost"))
+      ("rpcport", BoostProgOpt::value<int>()->default_value(18332))
+      ("rpcpassword", BoostProgOpt::value<string>())
+      ("rpcuser", BoostProgOpt::value<string>())
+      ;
 
-   // Load command line options
-   (void)argc;
-   (void)argv;
-}
+   BoostProgOpt::options_description allOptions;
+   allOptions.add(generalOptions).add(coreOptions);
 
-void Settings::addConfigFile( std::string filePath )
-{
-   ifstream configFile( filePath );
-   if( !configFile.is_open() )
-      return;
+   // Read all recognized options from command line
+   BoostProgOpt::store( BoostProgOpt::parse_command_line(argc,argv,allOptions), _varMap );
+   BoostProgOpt::notify( _varMap );
 
-   string line;
-   boost::regex keyValue( R"((\w+)\s*=\s*(\w+))" );      
-   boost::smatch matches;
-   while( !configFile.eof() )
+   if( _varMap.count("help") )
    {
-      getline( configFile, line );
-
-      if( !boost::regex_match(line,matches,keyValue) )
-         continue;
-
-      _data[matches[1]] = matches[2];
+      cout << allOptions;
+      exit( 0 );
    }
+
+   // Read settings from configuration file, ignoring unknown settings
+   const auto& configFile = _varMap["config"].as<string>();
+   BoostProgOpt::store( BoostProgOpt::parse_config_file<char>(configFile.c_str(),coreOptions,true), _varMap );
+   BoostProgOpt::notify( _varMap );
 }
 
 std::string Settings::RpcHost()
 {
-   return _data["rpchost"];
+   return _varMap["rpchost"].as<string>();
 }
 
 int Settings::RpcPort()
 {
-   return stoi( _data["rpcport"] );
+   return _varMap["rpcport"].as<int>();
 }
 
 std::string Settings::RpcUser()
 {
-   return _data["rpcuser"];
+   return _varMap["rpcuser"].as<string>();
 }
 
 std::string Settings::RpcPassword()
 {
-   return _data["rpcpassword"];
+   return _varMap["rpcpassword"].as<string>();
 }

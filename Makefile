@@ -16,7 +16,7 @@ DCOMPILE_FLAGS = -D DEBUG
 # Add additional include paths
 INCLUDES = -I $(SRC_PATH)/
 # General linker settings
-LINK_FLAGS = -lcurl -ljsoncpp -lboost_regex
+LINK_FLAGS = -lcurl -ljsoncpp -lboost_program_options
 # Additional release-specific linker settings
 RLINK_FLAGS = 
 # Additional debug-specific linker settings
