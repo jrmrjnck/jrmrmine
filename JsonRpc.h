@@ -6,7 +6,7 @@
 #ifndef JSONRPC_H
 #define JSONRPC_H
 
-#include <jsoncpp/json/json.h>
+#include <json/json.h>
 
 #include <string>
 
