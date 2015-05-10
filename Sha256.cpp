@@ -13,7 +13,7 @@
 #include <cstring>
 
 const int MSG_BLOCK_BITS = 512;
-const int MSG_BLOCK_BYTES = MSG_BLOCK_BITS/CHAR_BIT;
+const int MSG_BLOCK_BYTES = MSG_BLOCK_BITS / CHAR_BIT;
 
 // The first 32 bits of the fractional parts of the cube roots of the first 64 primes
 static const uint32_t K[] = {
@@ -28,17 +28,6 @@ static const uint32_t K[] = {
 };
 
 #define ROTATE_RIGHT(x,n) ((x >> n) | (x << (sizeof(x)*CHAR_BIT-n)))
-
-static int isBigEndian()
-{
-   union
-   {
-      uint32_t i;
-      char c[4];
-   } bint = {0x01020304};
-
-   return bint.c[0] == 1;
-}
 
 Sha256::Sha256()
  : _msgBits(0)
@@ -74,7 +63,7 @@ Sha256::Sha256( const Sha256& other )
 
 Sha256::~Sha256()
 {
-   for( uint8_t* block : _msgBlocks )
+   for( auto block : _msgBlocks )
       delete [] block;
 }
 
@@ -102,7 +91,7 @@ void Sha256::update( const void* data, int64_t bits )
       {
          // Hash the one that was just filled, if applicable
          if( !_msgBlocks.empty() )
-            _hash( _msgBlocks.size()-1 );
+            _hash( _msgBlocks.size() - 1 );
 
          _msgBlocks.push_back( new uint8_t[MSG_BLOCK_BYTES]() );
          availBytes = MSG_BLOCK_BYTES;
@@ -242,14 +231,15 @@ void Sha256::digest( Digest& output )
    // Copy to output
    for( int i = 0; i < 8; ++i )
    {
-      if( isBigEndian() )
-         *reinterpret_cast<uint32_t*>(&output[i*4]) = _digest[i];
-      else
-      {
-         output[i*4+0] = (_digest[i]) >> 24;
-         output[i*4+1] = (_digest[i] & 0x00ff0000) >> 16;
-         output[i*4+2] = (_digest[i] & 0x0000ff00) >> 8;
-         output[i*4+3] = (_digest[i] & 0x000000ff);
-      }
+      output[i] = _digest[i];
+      //if( isBigEndian() )
+         //*reinterpret_cast<uint32_t*>(&output[i*4]) = _digest[i];
+      //else
+      //{
+         //output[i*4+0] = (_digest[i]) >> 24;
+         //output[i*4+1] = (_digest[i] & 0x00ff0000) >> 16;
+         //output[i*4+2] = (_digest[i] & 0x0000ff00) >> 8;
+         //output[i*4+3] = (_digest[i] & 0x000000ff);
+      //}
    }
 }

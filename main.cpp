@@ -8,6 +8,7 @@
 #include "Settings.h"
 #include "Util.h"
 #include "Transaction.h"
+#include "Radix.h"
 
 #include <cassert>
 #include <algorithm>
@@ -29,27 +30,18 @@ void getBlockTemplate()
                 Settings::RpcUser(), Settings::RpcPassword() );
 
    Json::Value params;
-   auto& caps = params[0u]["capabilities"];
-   caps.append( "coinbasetxn" );
-   caps.append( "workid" );
-   caps.append( "coinbase/append" );
-   caps.append( "longpoll" );
+   params[0u]["capabilities"] = Json::arrayValue;
    auto blockTemplate = rpc.call( "getblocktemplate", params );
 
    params.clear();
    params[0u] = "Mining Coinbase";
-   // FIXME: Maybe call getnewaddress in the future?
    auto newAddressReply = rpc.call( "getaccountaddress", params );
 
    if( blockTemplate.isMember("coinbasetxn") )
       throw std::runtime_error( "Coinbase txn already exists" );
 
-   // Hack to read 64-bit int from Json::Value, which doesn't provide a 64-bit
-   // interface except in the unstable 0.6.0-rc
-   stringstream ss;
-   ss << blockTemplate["coinbasevalue"];
-   double coinbaseValue = stod(ss.str()) / 100000000;
-   cout << coinbaseValue << endl;
+   double coinbaseValue = blockTemplate["coinbasevalue"].asInt64();
+   coinbaseValue /= SATOSHIS_PER_BITCOIN;
 
    // Create coinbase transaction
    params.clear();
@@ -59,11 +51,20 @@ void getBlockTemplate()
    params[1][newAddressReply.asString()] = coinbaseValue;
    auto cbTxnReply = rpc.call( "createrawtransaction", params );
 
-   // Insert word for extranonce
-   auto cbTxnData = cbTxnReply.asString();
-   hexStringToBinary( cbTxnData );
-   cbTxnData[41] = 4;
-   cbTxnData.insert( 42, 4, 0 );
+   Transaction coinbaseTxn;
+   coinbaseTxn.version = 1;
+   coinbaseTxn.inputs.resize( 1 );
+   auto& coinbaseInput = coinbaseTxn.inputs[0];
+   coinbaseInput.prevHash.fill( 0 );
+   coinbaseInput.prevN = -1;
+   coinbaseInput.scriptSig << Script::Data(blockTemplate["height"].asInt(), 3) << 0 << 0 << 0 << 0;
+   coinbaseInput.sequence = 0;
+   coinbaseTxn.outputs.resize( 1 );
+   auto& coinbaseOutput = coinbaseTxn.outputs[0];
+   coinbaseOutput.value = coinbaseValue;
+   coinbaseOutput.scriptPubKey << OP_DUP << OP_HASH160;
+   coinbaseTxn.storeSerial( std::cout );
+   std::cout << std::endl;
 }
 
 int main( int argc, char** argv )

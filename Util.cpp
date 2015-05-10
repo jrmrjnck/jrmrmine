@@ -16,11 +16,13 @@ void reverseHexBytes( string& ba )
    while( i < j )
    {
       char t1 = ba[i];
-      char t2 = ba[i+1];
-      ba[i]   = ba[j];
-      ba[i+1] = ba[j+1];
-      ba[j]   = t1;
-      ba[j+1] = t2;
+      char t2 = ba[i + 1];
+
+      ba[i]     = ba[j];
+      ba[i + 1] = ba[j + 1];
+      ba[j]     = t1;
+      ba[j + 1] = t2;
+
       i += 2;
       j -= 2;
    }
@@ -31,9 +33,9 @@ int64_t readInt( std::istream& ss, size_t size )
    assert( size <= sizeof(int64_t) );
 
    // TODO: figure out better way to use stringstream
-   string str( size*2, '\0' );
-   for( unsigned int i = 0; i < str.size(); ++i )
-      str[i] = ss.get();
+   string str( size * 2, '\0' );
+   for( auto& c : str )
+      ss.get( c );
    reverseHexBytes( str );
    return stoi( str, nullptr, 16 );
 }
@@ -90,23 +92,6 @@ void writeVarInt( std::ostream& ss, int64_t n )
    }
 }
 
-// Reverse byte order within 4-byte words
-// Input must be binary encoded (not hex text)
-void swapEndianness( string& ba )
-{
-   assert( ba.size() % 4 == 0 );
-
-   for( unsigned i = 0; i < ba.size(); i += 4 )
-   {
-      char t0 = ba[i+0];
-      char t1 = ba[i+1];
-      ba[i+0] = ba[i+3];
-      ba[i+1] = ba[i+2];
-      ba[i+2] = t1;
-      ba[i+3] = t0;
-   }
-}
-
 void printSum( const uint8_t* sum )
 {
    for( int i = 0; i < 32; ++i )
@@ -159,18 +144,42 @@ int hexToInt( char c )
       return -1;
 }
 
-void hexStringToBinary( string& str )
+ByteArray hexStringToBinary( const string& str )
 {
    assert( str.size() % 2 == 0 );
 
-   int o = 0;
+   ByteArray result;
+
    for( unsigned i = 0; i < str.size(); i += 2 )
    {
       uint8_t val = hexToInt( str[i] );
       val <<= 4;
       val |= hexToInt( str[i+1] );
-      str[o++] = val;
+      result.push_back( val );
    }
 
-   str.resize( o );
+   return result;
+}
+
+std::ostream& operator <<( std::ostream& outputStream, const ByteArray& byteArray )
+{
+   outputStream << std::hex << std::setfill('0');
+
+   for( auto byte : byteArray )
+   {
+      outputStream << std::setw(2) << static_cast<int>(byte);
+   }
+
+   return outputStream;
+}
+
+int isBigEndian()
+{
+   union
+   {
+      uint32_t i;
+      char c[4];
+   } bint = {0x01020304};
+
+   return bint.c[0] == 1;
 }
