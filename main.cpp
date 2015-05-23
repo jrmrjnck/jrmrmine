@@ -29,28 +29,26 @@ void getBlockTemplate()
    JsonRpc rpc( Settings::RpcHost(), Settings::RpcPort(),
                 Settings::RpcUser(), Settings::RpcPassword() );
 
+   // Get block template
    Json::Value params;
    params[0u]["capabilities"] = Json::arrayValue;
    auto blockTemplate = rpc.call( "getblocktemplate", params );
 
+   // Get coinbase destination
    params.clear();
    params[0u] = "Mining Coinbase";
-   auto newAddressReply = rpc.call( "getaccountaddress", params );
+   auto coinbaseAddress = rpc.call( "getaccountaddress", params ).asString();
+   // Convert address to pubkey hash
+   auto coinbasePubKeyHash = Radix::base58DecodeCheck( coinbaseAddress );
+   // Remove leading version byte
+   coinbasePubKeyHash.erase( coinbasePubKeyHash.begin() );
 
    if( blockTemplate.isMember("coinbasetxn") )
       throw std::runtime_error( "Coinbase txn already exists" );
 
-   double coinbaseValue = blockTemplate["coinbasevalue"].asInt64();
-   coinbaseValue /= SATOSHIS_PER_BITCOIN;
+   auto coinbaseValue = blockTemplate["coinbasevalue"].asInt64();
 
    // Create coinbase transaction
-   params.clear();
-   auto& cbInput = params[0u][0u];
-   cbInput["txid"] = string( 64, '0' );
-   cbInput["vout"] = 0;
-   params[1][newAddressReply.asString()] = coinbaseValue;
-   auto cbTxnReply = rpc.call( "createrawtransaction", params );
-
    Transaction coinbaseTxn;
    coinbaseTxn.version = 1;
    coinbaseTxn.inputs.resize( 1 );
@@ -63,6 +61,8 @@ void getBlockTemplate()
    auto& coinbaseOutput = coinbaseTxn.outputs[0];
    coinbaseOutput.value = coinbaseValue;
    coinbaseOutput.scriptPubKey << OP_DUP << OP_HASH160;
+   coinbaseOutput.scriptPubKey << Script::Data(coinbasePubKeyHash.data(), coinbasePubKeyHash.size());
+   coinbaseOutput.scriptPubKey << OP_EQUALVERIFY << OP_CHECKSIG;
    coinbaseTxn.storeSerial( std::cout );
    std::cout << std::endl;
 }

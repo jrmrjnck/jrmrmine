@@ -60,7 +60,8 @@ void TxnOutput::loadSerial( std::istream& serialStream )
 
 void TxnOutput::storeSerial( std::ostream& serialStream )
 {
-   writeInt( serialStream, value );
+   writeInt( serialStream, value, sizeof(value) );
+   writeVarInt( serialStream, scriptPubKey.size() );
    serialStream << scriptPubKey;
 }
 
