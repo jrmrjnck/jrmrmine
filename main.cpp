@@ -9,6 +9,7 @@
 #include "Util.h"
 #include "Transaction.h"
 #include "Radix.h"
+#include "Block.h"
 
 #include <cassert>
 #include <algorithm>
@@ -52,8 +53,6 @@ void getBlockTemplate()
    auto coinbaseTxn = Transaction::createCoinbase( blockTemplate["height"].asInt(),
                                                    coinbaseValue,
                                                    coinbasePubKeyHash );
-   coinbaseTxn.serialize( std::cout );
-   std::cout << std::endl;
 }
 
 int main( int argc, char** argv )

@@ -29,19 +29,34 @@ static const uint32_t K[] = {
 
 #define ROTATE_RIGHT(x,n) ((x >> n) | (x << (sizeof(x)*CHAR_BIT-n)))
 
-Sha256::Sha256()
- : _msgBits(0)
+Sha256::Digest::Digest()
 {
-   // Set initial hash values
-   // Fractional parts of the square roots of the first 8 primes
-   _digest[0] = 0x6a09e667;
-   _digest[1] = 0xbb67ae85;
-   _digest[2] = 0x3c6ef372;
-   _digest[3] = 0xa54ff53a;
-   _digest[4] = 0x510e527f;
-   _digest[5] = 0x9b05688c;
-   _digest[6] = 0x1f83d9ab;
-   _digest[7] = 0x5be0cd19;
+   fill( 0 );
+}
+
+ByteArray Sha256::Digest::toByteArray() const
+{
+   ByteArray result( sizeof(*this) );
+   for( unsigned i = 0; i < size(); ++i )
+   {
+      auto word = at( i );
+
+      if( !isLittleEndian() )
+         *reinterpret_cast<uint32_t*>(&result[i * 4]) = word;
+      else
+      {
+         result[i * 4 + 0] = (word) >> 24;
+         result[i * 4 + 1] = (word & 0x00ff0000) >> 16;
+         result[i * 4 + 2] = (word & 0x0000ff00) >> 8;
+         result[i * 4 + 3] = (word & 0x000000ff);
+      }
+   }
+   return result;
+}
+
+Sha256::Sha256()
+{
+   reset();
 }
 
 Sha256::Sha256( const Sha256& other )
@@ -65,6 +80,26 @@ Sha256::~Sha256()
 {
    for( auto block : _msgBlocks )
       delete [] block;
+}
+
+void Sha256::reset()
+{
+   for( auto block : _msgBlocks )
+      delete [] block;
+   _msgBlocks.clear();
+
+   _msgBits = 0;
+
+   // Set initial hash values
+   // Fractional parts of the square roots of the first 8 primes
+   _digest[0] = 0x6a09e667;
+   _digest[1] = 0xbb67ae85;
+   _digest[2] = 0x3c6ef372;
+   _digest[3] = 0xa54ff53a;
+   _digest[4] = 0x510e527f;
+   _digest[5] = 0x9b05688c;
+   _digest[6] = 0x1f83d9ab;
+   _digest[7] = 0x5be0cd19;
 }
 
 void Sha256::update( const void* data, int64_t bits )
@@ -232,14 +267,21 @@ void Sha256::digest( Digest& output )
    for( int i = 0; i < 8; ++i )
    {
       output[i] = _digest[i];
-      //if( isBigEndian() )
-         //*reinterpret_cast<uint32_t*>(&output[i*4]) = _digest[i];
-      //else
-      //{
-         //output[i*4+0] = (_digest[i]) >> 24;
-         //output[i*4+1] = (_digest[i] & 0x00ff0000) >> 16;
-         //output[i*4+2] = (_digest[i] & 0x0000ff00) >> 8;
-         //output[i*4+3] = (_digest[i] & 0x000000ff);
-      //}
    }
+}
+
+ByteArray Sha256::hash( const ByteArray& data )
+{
+   Sha256 hash;
+   Digest digest;
+
+   hash.update( data.data(), data.size() * CHAR_BIT );
+   hash.digest( digest );
+
+   return digest.toByteArray();
+}
+
+ByteArray Sha256::doubleHash( const ByteArray& data )
+{
+   return hash( hash(data) );
 }

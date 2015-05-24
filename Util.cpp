@@ -141,13 +141,8 @@ std::ostream& operator <<( std::ostream& outputStream, const ByteArray& byteArra
    return outputStream;
 }
 
-bool isBigEndian()
+bool isLittleEndian()
 {
-   union
-   {
-      uint32_t i;
-      char c[4];
-   } bint = {0x01020304};
-
-   return bint.c[0] == 1;
+   uint32_t i = 1;
+   return reinterpret_cast<uint8_t*>(&i)[0] == 1;
 }

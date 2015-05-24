@@ -22,4 +22,6 @@ public:
    static ByteArray convert( const ByteArray& input, int srcRadix, int destRadix );
 };
 
+extern const Radix::Alphabet BASE_58_ALPHABET;
+
 #endif // !RADIX_H

@@ -8,7 +8,7 @@
 #include <iostream>
 #include <iomanip>
 
-static const Radix::Alphabet BASE_58_ALPHABET = {
+const Radix::Alphabet BASE_58_ALPHABET = {
    "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz",
    {
    /* 1-9 */ 0, 1, 2, 3, 4, 5, 6, 7, 8,
@@ -29,17 +29,12 @@ ByteArray Radix::base58DecodeCheck( const std::string& base58Str )
    // SHA256(SHA256(payload)) check
    if( output.size() > 4 )
    {
-      Sha256::Digest digest;
-      Sha256 hasher;
-      hasher.update( &output[0], (output.size() - 4 ) * CHAR_BIT );
-      hasher.digest( digest );
-      Sha256 hasher2;
-      hasher2.update( &digest.toByteArray()[0], sizeof(digest) * CHAR_BIT );
-      hasher2.digest( digest );
-
       ByteArray checkCode( output.end() - 4, output.end() );
       output.erase( output.end() - 4, output.end() );
-      if( !std::equal(checkCode.begin(), checkCode.end(), digest.toByteArray().begin()) )
+
+      auto rawDigest = Sha256::doubleHash( output );
+
+      if( !std::equal(checkCode.begin(), checkCode.end(), rawDigest.begin()) )
          throw std::runtime_error( "address check code failed" );
    }
 

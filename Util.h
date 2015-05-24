@@ -20,7 +20,7 @@ std::string bitsToTarget( uint32_t bits );
 int hexToInt( char c );
 ByteArray hexStringToBinary( const std::string& str );
 std::ostream& operator <<( std::ostream& outputStream, const ByteArray& byteArray );
-bool isBigEndian();
+bool isLittleEndian();
 
 //
 // Functions that can read and write integers on a stream of hex characters
