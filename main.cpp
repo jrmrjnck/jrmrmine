@@ -49,21 +49,10 @@ void getBlockTemplate()
    auto coinbaseValue = blockTemplate["coinbasevalue"].asInt64();
 
    // Create coinbase transaction
-   Transaction coinbaseTxn;
-   coinbaseTxn.version = 1;
-   coinbaseTxn.inputs.resize( 1 );
-   auto& coinbaseInput = coinbaseTxn.inputs[0];
-   coinbaseInput.prevHash.fill( 0 );
-   coinbaseInput.prevN = -1;
-   coinbaseInput.scriptSig << Script::Data(blockTemplate["height"].asInt(), 3) << 0 << 0 << 0 << 0;
-   coinbaseInput.sequence = 0;
-   coinbaseTxn.outputs.resize( 1 );
-   auto& coinbaseOutput = coinbaseTxn.outputs[0];
-   coinbaseOutput.value = coinbaseValue;
-   coinbaseOutput.scriptPubKey << OP_DUP << OP_HASH160;
-   coinbaseOutput.scriptPubKey << Script::Data(coinbasePubKeyHash.data(), coinbasePubKeyHash.size());
-   coinbaseOutput.scriptPubKey << OP_EQUALVERIFY << OP_CHECKSIG;
-   coinbaseTxn.storeSerial( std::cout );
+   auto coinbaseTxn = Transaction::createCoinbase( blockTemplate["height"].asInt(),
+                                                   coinbaseValue,
+                                                   coinbasePubKeyHash );
+   coinbaseTxn.serialize( std::cout );
    std::cout << std::endl;
 }
 

@@ -8,12 +8,13 @@
 #include <string>
 #include <limits>
 
-struct Transaction
+class Transaction
 {
+public:
    struct Input
    {
-      void loadSerial( std::istream& serialStream );
-      void storeSerial( std::ostream& serialStream );
+      void deserialize( std::istream& inStream );
+      void serialize( std::ostream& outStream ) const;
 
       Sha256::Digest prevHash;
       int            prevN;
@@ -23,23 +24,28 @@ struct Transaction
 
    struct Output
    {
-      void loadSerial( std::istream& serialStream );
-      void storeSerial( std::ostream& serialStream );
+      void deserialize( std::istream& inStream );
+      void serialize( std::ostream& outStream ) const;
 
       int64_t  value;
       Script   scriptPubKey;
    };
 
-   Transaction() {}
-   Transaction( const std::string& serializedTxnStr );
-   ~Transaction();
+public:
+   void serialize( std::ostream& outStream ) const;
 
-   void storeSerial( std::ostream& serialStream );
-
+public:
    int                  version;
    int                  lockTime;
    std::vector<Input>   inputs;
    std::vector<Output>  outputs;
+
+public:
+   static Transaction createCoinbase( int blockHeight,
+                                      int64_t coinbaseValue,
+                                      const ByteArray& pubKeyHash );
+
+   static Transaction deserialize( const std::string& serializedTxnStr );
 };
 
 typedef Transaction::Input TxnInput;

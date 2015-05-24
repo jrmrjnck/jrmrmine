@@ -2,6 +2,24 @@
 
 #include <cassert>
 
+Script::Data::Data( int64_t value, int size )
+{
+   _data = nullptr;
+   _intData = value;
+   _size = size;
+}
+
+Script::Data::Data( const void* data, int size )
+{
+   _data = data;
+   _size = size;
+}
+
+Script::Data::Data( const ByteArray& byteArray )
+ : Data( byteArray.data(), byteArray.size() )
+{
+}
+
 Script& Script::operator <<( const Data& data )
 {
    assert( data._size <= 75 );
@@ -23,4 +41,11 @@ Script& Script::operator <<( uint8_t byte )
 {
    push_back( byte );
    return *this;
+}
+
+Script Script::deserialize( const std::string& serialized )
+{
+   Script script;
+   static_cast<ByteArray&>(script) = hexStringToBinary( serialized );
+   return script;
 }

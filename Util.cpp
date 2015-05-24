@@ -28,42 +28,19 @@ void reverseHexBytes( string& ba )
    }
 }
 
-int64_t readInt( std::istream& ss, size_t size )
-{
-   assert( size <= sizeof(int64_t) );
-
-   // TODO: figure out better way to use stringstream
-   string str( size * 2, '\0' );
-   for( auto& c : str )
-      ss.get( c );
-   reverseHexBytes( str );
-   return stoi( str, nullptr, 16 );
-}
-
 int64_t readVarInt( std::istream& ss )
 {
    uint8_t prefix = hexToInt(ss.get()) << 4 | hexToInt(ss.get());
    switch( prefix )
    {
    case 0xff:
-      return readInt( ss, 8 );
+      return readInt<int64_t>( ss );
    case 0xfe:
-      return readInt( ss, 4 );
+      return readInt<int32_t>( ss );
    case 0xfd:
-      return readInt( ss, 2 );
+      return readInt<int16_t>( ss );
    default:
       return prefix;
-   }
-}
-
-void writeInt( std::ostream& ss, int64_t n, size_t size )
-{
-   ss << hex << setfill('0');
-   for( unsigned i = 0; i < size; ++i )
-   {
-      unsigned int byte = n & 0xff;
-      ss << setw(2) << byte;
-      n >>= CHAR_BIT;
    }
 }
 
@@ -90,15 +67,6 @@ void writeVarInt( std::ostream& ss, int64_t n )
       ss << "ff";
       ss << setw(16) << un;
    }
-}
-
-void printSum( const uint8_t* sum )
-{
-   for( int i = 0; i < 32; ++i )
-   {
-      printf( "%.2x", sum[i] );
-   }
-   printf( "\n" );
 }
 
 // See bitcoin/bitnum.h/CBigNum::SetCompact
@@ -173,7 +141,7 @@ std::ostream& operator <<( std::ostream& outputStream, const ByteArray& byteArra
    return outputStream;
 }
 
-int isBigEndian()
+bool isBigEndian()
 {
    union
    {

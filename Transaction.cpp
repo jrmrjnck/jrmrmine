@@ -3,42 +3,46 @@
 #include <sstream>
 #include <cassert>
 #include <iomanip>
+#include <iostream>
 
 using std::string;
 using std::stringstream;
 
-void TxnInput::loadSerial( std::istream& serialStream )
+void TxnInput::deserialize( std::istream& serialStream )
 {
    // Load the outpoint TXID
    string hashStr( sizeof(Sha256::Digest) * 2, 0 );
    serialStream.read( &hashStr[0], hashStr.size() );
    ByteArray binaryTxid = hexStringToBinary( hashStr );
    assert( binaryTxid.size() == sizeof(Sha256::Digest) );
-   for( unsigned int i = 0; i < binaryTxid.size(); ++i )
+   for( unsigned int i = 0; i < prevHash.size(); ++i )
    {
-      prevHash[i] = binaryTxid[i];
+      prevHash[i] =   (binaryTxid[i * 4 + 0] << 0 * CHAR_BIT)
+                    + (binaryTxid[i * 4 + 1] << 1 * CHAR_BIT)
+                    + (binaryTxid[i * 4 + 2] << 2 * CHAR_BIT)
+                    + (binaryTxid[i * 4 + 3] << 3 * CHAR_BIT);
    }
 
    // Load the outpoint index
-   prevN = readInt( serialStream );
+   prevN = readInt<int>( serialStream );
 
    // Load the signature script
    int scriptSize = readVarInt( serialStream );
    assert( scriptSize <= 10000 );
    string scriptSigStr( scriptSize * 2, 0 );
    serialStream.read( &scriptSigStr[0], scriptSigStr.size() );
-   scriptSig = hexStringToBinary( scriptSigStr );
+   scriptSig = Script::deserialize( scriptSigStr );
 
    // Load the sequence number
-   sequence = readInt( serialStream );
+   sequence = readInt<int>( serialStream );
 }
 
-void TxnInput::storeSerial( std::ostream& serialStream )
+void TxnInput::serialize( std::ostream& serialStream ) const
 {
    serialStream << std::hex << std::setfill('0');
    for( auto elem : prevHash )
    {
-      writeInt( serialStream, elem, sizeof(elem) );
+      writeInt( serialStream, elem );
    }
    writeInt( serialStream, prevN );
    writeVarInt( serialStream, scriptSig.size() );
@@ -46,59 +50,82 @@ void TxnInput::storeSerial( std::ostream& serialStream )
    writeInt( serialStream, sequence );
 }
 
-void TxnOutput::loadSerial( std::istream& serialStream )
+void TxnOutput::deserialize( std::istream& serialStream )
 {
    // Load the value
-   value = readInt( serialStream, sizeof(value) );
+   value = readInt<int64_t>( serialStream );
 
    // Load the pubkey script
    int scriptSize = readVarInt( serialStream );
    string scriptPubKeyStr( scriptSize * 2, 0 );
    serialStream.read( &scriptPubKeyStr[0], scriptPubKeyStr.size() );
-   scriptPubKey = hexStringToBinary( scriptPubKeyStr );
+   scriptPubKey = Script::deserialize( scriptPubKeyStr );
 }
 
-void TxnOutput::storeSerial( std::ostream& serialStream )
+void TxnOutput::serialize( std::ostream& serialStream ) const
 {
-   writeInt( serialStream, value, sizeof(value) );
+   writeInt( serialStream, value );
    writeVarInt( serialStream, scriptPubKey.size() );
    serialStream << scriptPubKey;
 }
 
-Transaction::Transaction( const std::string& serializedTxnStr )
-{
-   stringstream txnSerialStream( serializedTxnStr );
-
-   version = readInt( txnSerialStream );
-
-   // Load inputs
-   inputs.resize( readVarInt(txnSerialStream) );
-   for( auto& input : inputs )
-      input.loadSerial( txnSerialStream );
-
-   // Load outputs
-   outputs.resize( readVarInt(txnSerialStream) );
-   for( auto& output : outputs )
-      output.loadSerial( txnSerialStream );
-
-   lockTime = readInt( txnSerialStream );
-}
-
-Transaction::~Transaction()
-{
-}
-
-void Transaction::storeSerial( std::ostream& serialStream )
+void Transaction::serialize( std::ostream& serialStream ) const
 {
    writeInt( serialStream, version );
 
    writeVarInt( serialStream, inputs.size() );
    for( auto& input : inputs )
-      input.storeSerial( serialStream );
+      input.serialize( serialStream );
 
    writeVarInt( serialStream, outputs.size() );
    for( auto& output : outputs )
-      output.storeSerial( serialStream );
+      output.serialize( serialStream );
 
    writeInt( serialStream, lockTime );
+}
+
+Transaction Transaction::createCoinbase( int blockHeight,
+                                         int64_t coinbaseValue,
+                                         const ByteArray& pubKeyHash )
+{
+   Transaction coinbaseTxn;
+
+   coinbaseTxn.version = 1;
+   coinbaseTxn.inputs.resize( 1 );
+   auto& coinbaseInput = coinbaseTxn.inputs[0];
+   coinbaseInput.prevHash.fill( 0 );
+   coinbaseInput.prevN = -1;
+   coinbaseInput.scriptSig << Script::Data(blockHeight, 3)
+                           << 0 << 0 << 0 << 0;
+   coinbaseInput.sequence = 0;
+   coinbaseTxn.outputs.resize( 1 );
+   auto& coinbaseOutput = coinbaseTxn.outputs[0];
+   coinbaseOutput.value = coinbaseValue;
+   coinbaseOutput.scriptPubKey << OP_DUP << OP_HASH160
+                               << Script::Data(pubKeyHash)
+                               << OP_EQUALVERIFY << OP_CHECKSIG;
+   coinbaseTxn.lockTime = 0;
+   return coinbaseTxn;
+}
+
+Transaction Transaction::deserialize( const std::string& serializedTxnStr )
+{
+   Transaction txn;
+   std::istringstream txnSerialStream( serializedTxnStr );
+
+   txn.version = readInt<int>( txnSerialStream );
+
+   // Load inputs
+   txn.inputs.resize( readVarInt(txnSerialStream) );
+   for( auto& input : txn.inputs )
+      input.deserialize( txnSerialStream );
+
+   // Load outputs
+   txn.outputs.resize( readVarInt(txnSerialStream) );
+   for( auto& output : txn.outputs )
+      output.deserialize( txnSerialStream );
+
+   txn.lockTime = readInt<int>( txnSerialStream );
+
+   return txn;
 }
