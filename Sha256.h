@@ -36,7 +36,7 @@ public:
    static ByteArray doubleHash( const ByteArray& data );
 
 private:
-   void _hash( int blockIdx );
+   void _hash( const uint8_t* msg );
 
 private:
    std::vector<uint8_t*> _msgBlocks;

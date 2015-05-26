@@ -14,6 +14,7 @@
 
 const int MSG_BLOCK_BITS = 512;
 const int MSG_BLOCK_BYTES = MSG_BLOCK_BITS / CHAR_BIT;
+const int MIN_PADDING_BITS = 1 + sizeof(int64_t) * CHAR_BIT;
 
 // The first 32 bits of the fractional parts of the cube roots of the first 64 primes
 static const uint32_t K[] = {
@@ -112,7 +113,12 @@ void Sha256::update( const void* data, int64_t bits )
    int64_t bytesToCopy = bits / CHAR_BIT;
    int bitsInLastBlock = _msgBits % MSG_BLOCK_BITS;
    int availBytes = 0;
-   if( bitsInLastBlock != 0 )
+   if( bitsInLastBlock == 0 && _msgBits > 0 )
+   {
+      bitsInLastBlock = MSG_BLOCK_BITS;
+   }
+
+   if( bitsInLastBlock > 0 )
    {
       assert( !_msgBlocks.empty() );
       availBytes = (MSG_BLOCK_BITS - bitsInLastBlock) / CHAR_BIT;
@@ -126,7 +132,7 @@ void Sha256::update( const void* data, int64_t bits )
       {
          // Hash the one that was just filled, if applicable
          if( !_msgBlocks.empty() )
-            _hash( _msgBlocks.size() - 1 );
+            _hash( _msgBlocks.back() );
 
          _msgBlocks.push_back( new uint8_t[MSG_BLOCK_BYTES]() );
          availBytes = MSG_BLOCK_BYTES;
@@ -146,10 +152,8 @@ void Sha256::update( const void* data, int64_t bits )
    _msgBits += bits;
 }
 
-void Sha256::_hash( int blockIdx )
+void Sha256::_hash( const uint8_t* msg )
 {
-   uint8_t* msg = _msgBlocks[blockIdx];
-
    uint32_t a = _digest[0];
    uint32_t b = _digest[1];
    uint32_t c = _digest[2];
@@ -238,30 +242,41 @@ void Sha256::digest( Digest& output )
    // Check for space to insert padding and length
    int bitsInLastBlock = _msgBits % MSG_BLOCK_BITS;
    int availBits = MSG_BLOCK_BITS - bitsInLastBlock;
-   uint8_t* pad = _msgBlocks.back() + (bitsInLastBlock / CHAR_BIT);
-   if( availBits < (1 + 64) )
-      _msgBlocks.push_back( new uint8_t[MSG_BLOCK_BYTES]() );
+   if( _msgBits > 0 && bitsInLastBlock == 0 )
+   {
+      _hash( _msgBlocks.back() );
+      availBits = 0;
+      bitsInLastBlock = MSG_BLOCK_BITS;
+   }
 
-   // Set following 1
-   if( availBits != 0 )
-      pad[0] = 0x80;
-   else
-      _msgBlocks.back()[0] = 0x80;
+   uint8_t* pad = _msgBlocks.back() + (bitsInLastBlock / CHAR_BIT);
+   if( availBits < MIN_PADDING_BITS )
+   {
+      _msgBlocks.push_back( new uint8_t[MSG_BLOCK_BYTES]() );
+   }
+
+   // Set following 1 bit
+   if( availBits == 0 )
+   {
+      pad = _msgBlocks.back();
+   }
+   pad[0] = 0x80;
 
    // Set message length
    int64_t bits = _msgBits;
    pad = _msgBlocks.back() + MSG_BLOCK_BYTES - sizeof(bits);
-   for( unsigned i = 0; i < sizeof(bits); ++i )
+   for( int i = sizeof(bits) - 1; i >= 0; --i )
    {
-      pad[i] = (bits >> (8*(7-i))) & 0xFF;
+      pad[i] = bits & 0xff;
+      bits >>= CHAR_BIT;
    }
 
    // The second to last block may have been modified
-   if( availBits != 0 && availBits < (1 + 64) )
-      _hash( _msgBlocks.size() - 2 );
+   if( availBits > 0 && availBits < MIN_PADDING_BITS )
+      _hash( _msgBlocks.crbegin()[1] );
 
    // We know the last block was modified
-   _hash( _msgBlocks.size() - 1 );
+   _hash( _msgBlocks.back() );
 
    // Copy to output
    for( int i = 0; i < 8; ++i )
