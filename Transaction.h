@@ -33,6 +33,7 @@ public:
 
 public:
    void serialize( std::ostream& outStream ) const;
+   ByteArray id() const;
 
 public:
    int                  version;

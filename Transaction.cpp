@@ -84,6 +84,14 @@ void Transaction::serialize( std::ostream& serialStream ) const
    writeInt( serialStream, lockTime );
 }
 
+ByteArray Transaction::id() const
+{
+   std::ostringstream stream;
+   serialize( stream );
+   ByteArray binaryData = hexStringToBinary( stream.str() );
+   return Sha256::doubleHash( binaryData );
+}
+
 Transaction Transaction::createCoinbase( int blockHeight,
                                          int64_t coinbaseValue,
                                          const ByteArray& pubKeyHash )
