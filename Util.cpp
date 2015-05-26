@@ -146,3 +146,8 @@ bool isLittleEndian()
    uint32_t i = 1;
    return reinterpret_cast<uint8_t*>(&i)[0] == 1;
 }
+
+bool isPowerOfTwo( int n )
+{
+   return (n > 0 && (((n - 1) & n) == 0));
+}

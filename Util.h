@@ -21,6 +21,7 @@ int hexToInt( char c );
 ByteArray hexStringToBinary( const std::string& str );
 std::ostream& operator <<( std::ostream& outputStream, const ByteArray& byteArray );
 bool isLittleEndian();
+bool isPowerOfTwo( int n );
 
 //
 // Functions that can read and write integers on a stream of hex characters
