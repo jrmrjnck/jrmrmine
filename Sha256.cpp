@@ -287,10 +287,15 @@ void Sha256::digest( Digest& output )
 
 ByteArray Sha256::hash( const ByteArray& data )
 {
+   return hash( data.data(), data.size() );
+}
+
+ByteArray Sha256::hash( const void* data, int64_t bytes )
+{
    Sha256 hash;
    Digest digest;
 
-   hash.update( data.data(), data.size() * CHAR_BIT );
+   hash.update( data, bytes * CHAR_BIT );
    hash.digest( digest );
 
    return digest.toByteArray();
@@ -298,5 +303,10 @@ ByteArray Sha256::hash( const ByteArray& data )
 
 ByteArray Sha256::doubleHash( const ByteArray& data )
 {
-   return hash( hash(data) );
+   return doubleHash( data.data(), data.size() );
+}
+
+ByteArray Sha256::doubleHash( const void* data, int64_t bytes )
+{
+   return hash( hash( data, bytes ) );
 }

@@ -33,7 +33,9 @@ public:
 
 public:
    static ByteArray hash( const ByteArray& data );
+   static ByteArray hash( const void* data, int64_t bytes );
    static ByteArray doubleHash( const ByteArray& data );
+   static ByteArray doubleHash( const void* data, int64_t bytes );
 
 private:
    void _hash( const uint8_t* msg );
