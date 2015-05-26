@@ -14,6 +14,8 @@
 class Sha256
 {
 public:
+   typedef std::array<uint8_t,32> RawDigest;
+
    struct Digest : public std::array<uint32_t,8>
    {
       Digest();
