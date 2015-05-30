@@ -32,6 +32,7 @@ public:
 
    void updateHeader();
 
+   ByteArray headerData();
    ByteArray merkleRoot();
 
 public:
