@@ -17,6 +17,7 @@ void Settings::init( int argc, char** argv )
    BoostProgOpt::options_description generalOptions( "General Options" );
    generalOptions.add_options()
       ("help,h", "Print this help.")
+      ("debug,d", "Show debug output.")
       ("config,c", BoostProgOpt::value<string>()->default_value(defaultConfigFile()), "Bitcoin Core configuration file to load.")
       ;
 
@@ -65,4 +66,9 @@ std::string Settings::RpcUser()
 std::string Settings::RpcPassword()
 {
    return _varMap["rpcpassword"].as<string>();
+}
+
+bool Settings::debug()
+{
+   return _varMap.count( "debug" );
 }

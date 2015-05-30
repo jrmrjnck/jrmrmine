@@ -4,6 +4,7 @@
  */
 
 #include "JsonRpc.h"
+#include "Settings.h"
 
 #include <curl/curl.h>
 
@@ -108,7 +109,10 @@ Json::Value JsonRpc::call( const std::string& method, const Json::Value& params 
    req["method"]  = method;
    req["params"]  = params;
 
-   cout << "REQUEST: " << endl << req << endl;
+   if( Settings::debug() )
+   {
+      cout << "REQUEST: " << endl << req << endl;
+   }
 
    Json::FastWriter writer;
    string data = writer.write( req );
@@ -147,7 +151,10 @@ Json::Value JsonRpc::call( const std::string& method, const Json::Value& params 
    if( response["id"].asUInt() != req["id"].asUInt() )
       throw runtime_error( "Received response with wrong ID" );
 
-   cout << "REPLY: " << endl << response << endl;
+   if( Settings::debug() )
+   {
+      cout << "REPLY: " << endl << response << endl;
+   }
 
    return response["result"];
 }

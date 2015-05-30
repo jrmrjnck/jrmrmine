@@ -7,7 +7,8 @@ class Settings
 {
 public:
    static void init( int argc, char** argv );
-   static void addConfigFile( std::string filePath );
+
+   static bool debug();
 
    static std::string RpcHost();
    static int         RpcPort();
