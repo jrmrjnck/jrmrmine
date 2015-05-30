@@ -23,6 +23,7 @@ public:
 #pragma pack(pop)
 
 public:
+   Block();
    Block( int version, int time, int bits );
 
    void setPrevBlockHash( const ByteArray& prevBlockHash );

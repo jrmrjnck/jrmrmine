@@ -2,13 +2,19 @@
 
 #include <sstream>
 #include <cassert>
+#include <cstring>
+
+Block::Block()
+{
+   std::memset( &header, 0, sizeof(header) );
+}
 
 Block::Block( int version, int time, int bits )
+ : Block()
 {
    header.version = version;
    header.time = time;
    header.bits = bits;
-   header.nonce = 0;
 }
 
 void Block::setPrevBlockHash( const ByteArray& prevBlockHash )
