@@ -1,4 +1,5 @@
 #include "Settings.h"
+#include "Miner.h"
 
 #include <boost/program_options.hpp>
 
@@ -19,6 +20,7 @@ void Settings::init( int argc, char** argv )
       ("help,h", "Print this help.")
       ("debug,d", "Show debug output.")
       ("config,c", BoostProgOpt::value<string>()->default_value(defaultConfigFile()), "Bitcoin Core configuration file to load.")
+      ("type,t", BoostProgOpt::value<string>()->default_value("cpu"), typeHelpText().c_str())
       ;
 
    BoostProgOpt::options_description coreOptions( "Bitcoin Core Options" );
@@ -66,6 +68,38 @@ std::string Settings::RpcUser()
 std::string Settings::RpcPassword()
 {
    return _varMap["rpcpassword"].as<string>();
+}
+
+std::string Settings::defaultConfigFile()
+{
+   std::string home = getenv( "HOME" );
+   return home + "/.bitcoin/bitcoin.conf";
+}
+
+std::string Settings::typeHelpText()
+{
+   auto types = Miner::types();
+
+   if( types.size() < 1 )
+   {
+      throw std::runtime_error( "No kernel implementations are registered" );
+   }
+
+   std::string helpText( "Hashing kernel implementation type. Possible values are" );
+
+   for( auto& typeName : types )
+   {
+      helpText.append( " \"" ).append( typeName ).append( "\"," );
+   }
+   helpText.pop_back();
+   helpText.append( "." );
+
+   return helpText;
+}
+
+const std::string& Settings::minerType()
+{
+   return _varMap["type"].as<std::string>();
 }
 
 bool Settings::debug()

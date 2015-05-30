@@ -15,11 +15,11 @@ public:
    static std::string RpcUser();
    static std::string RpcPassword();
 
-   static std::string defaultConfigFile()
-   {
-      std::string home = getenv( "HOME" );
-      return home + "/.bitcoin/bitcoin.conf";
-   }
+   static const std::string& minerType();
+
+   static std::string defaultConfigFile();
+   static std::string minerTypes();
+   static std::string typeHelpText();
 };
 
 #endif // !SETTINGS_H
