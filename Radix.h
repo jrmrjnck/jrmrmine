@@ -1,3 +1,6 @@
+/**
+ * This is free and unencumbered software released into the public domain.
+**/
 #ifndef RADIX_H
 #define RADIX_H
 

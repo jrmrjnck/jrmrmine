@@ -1,7 +1,6 @@
-/*
- * Jonathan Doman
- * jonathan.doman@gmail.com
- */
+/**
+ * This is free and unencumbered software released into the public domain.
+**/
 #ifndef MINER_H
 #define MINER_H
 

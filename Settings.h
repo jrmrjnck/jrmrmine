@@ -1,3 +1,6 @@
+/**
+ * This is free and unencumbered software released into the public domain.
+**/
 #ifndef SETTINGS_H
 #define SETTINGS_H
 

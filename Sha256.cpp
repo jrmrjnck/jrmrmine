@@ -1,9 +1,9 @@
 /**
- * Jonathan Doman
- * jonathan.doman@gmail.com
+ * This is free and unencumbered software released into the public domain.
  *
  * Implementation based on http://csrc.nist.gov/groups/STM/cavp/documents/shs/sha256-384-512.pdf
- */
+**/
+
 #include "Sha256.h"
 
 #include <algorithm>

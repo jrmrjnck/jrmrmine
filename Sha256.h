@@ -1,7 +1,6 @@
-/*
- * Jonathan Doman
- * jonathan.doman@gmail.com
- */
+/**
+ * This is free and unencumbered software released into the public domain.
+**/
 #ifndef SHA256_H
 #define SHA256_H
 

@@ -1,8 +1,6 @@
-/*
- * Jonathan Doman
- * jonathan.doman@gmail.com
- */
-
+/**
+ * This is free and unencumbered software released into the public domain.
+**/
 #ifndef JSONRPC_H
 #define JSONRPC_H
 

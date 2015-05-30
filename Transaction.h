@@ -1,3 +1,6 @@
+/**
+ * This is free and unencumbered software released into the public domain.
+**/
 #ifndef TRANSACTION_H
 #define TRANSACTION_H
 

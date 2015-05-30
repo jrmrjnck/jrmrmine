@@ -1,3 +1,6 @@
+/**
+ * This is free and unencumbered software released into the public domain.
+**/
 #ifndef MERKLE_TREE_H
 #define MERKLE_TREE_H
 
