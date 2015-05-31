@@ -11,6 +11,9 @@
 #include <string>
 #include <limits>
 
+class Transaction;
+typedef std::unique_ptr<Transaction> TransactionPtr;
+
 class Transaction
 {
 public:
@@ -45,11 +48,11 @@ public:
    std::vector<Output>  outputs;
 
 public:
-   static Transaction createCoinbase( int blockHeight,
-                                      int64_t coinbaseValue,
-                                      const ByteArray& pubKeyHash );
+   static TransactionPtr createCoinbase( int blockHeight,
+                                         int64_t coinbaseValue,
+                                         const ByteArray& pubKeyHash );
 
-   static Transaction deserialize( const std::string& serializedTxnStr );
+   static TransactionPtr deserialize( const std::string& serializedTxnStr );
 };
 
 typedef Transaction::Input TxnInput;

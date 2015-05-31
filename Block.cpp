@@ -27,14 +27,10 @@ void Block::setPrevBlockHash( const ByteArray& prevBlockHash )
    std::copy( prevBlockHash.begin(), prevBlockHash.end(), header.prevBlock.begin() );
 }
 
-void Block::appendTransaction( const Transaction& txn )
+void Block::appendTransaction( std::unique_ptr<Transaction> txn )
 {
-   appendTransactionHash( txn.id() );
-}
-
-void Block::appendTransactionHash( const ByteArray& txnId )
-{
-   _merkleTree.append( txnId );
+   _merkleTree.append( txn->id() );
+   _txns.push_back( std::move(txn) );
 }
 
 void Block::updateHeader()

@@ -60,14 +60,14 @@ std::unique_ptr<Block> createBlockTemplate()
    block->header.time = blockTemplate["curtime"].asInt();
    block->header.bits = stoi( blockTemplate["bits"].asString(), nullptr, 16 );
    // Add all the transactions
-   block->appendTransaction( coinbaseTxn );
+   block->appendTransaction( std::move(coinbaseTxn) );
    auto txnArray = blockTemplate["transactions"];
    assert( txnArray.isArray() );
    for( unsigned i = 0; i < txnArray.size(); ++i )
    {
-      auto txnHash = hexStringToBinary( txnArray[i]["hash"].asString() );
-      std::reverse( txnHash.begin(), txnHash.end() );
-      block->appendTransactionHash( txnHash );
+      auto txnData = txnArray[i]["data"].asString();
+      auto txn = Transaction::deserialize( txnData );
+      block->appendTransaction( std::move(txn) );
    }
    block->updateHeader();
 

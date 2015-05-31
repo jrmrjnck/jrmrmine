@@ -96,48 +96,48 @@ ByteArray Transaction::id() const
    return Sha256::doubleHash( binaryData );
 }
 
-Transaction Transaction::createCoinbase( int blockHeight,
-                                         int64_t coinbaseValue,
-                                         const ByteArray& pubKeyHash )
+TransactionPtr Transaction::createCoinbase( int blockHeight,
+                                            int64_t coinbaseValue,
+                                            const ByteArray& pubKeyHash )
 {
-   Transaction coinbaseTxn;
+   TransactionPtr coinbaseTxn( new Transaction );
 
-   coinbaseTxn.version = 1;
-   coinbaseTxn.inputs.resize( 1 );
-   auto& coinbaseInput = coinbaseTxn.inputs[0];
+   coinbaseTxn->version = 1;
+   coinbaseTxn->inputs.resize( 1 );
+   auto& coinbaseInput = coinbaseTxn->inputs[0];
    coinbaseInput.prevHash.fill( 0 );
    coinbaseInput.prevN = -1;
    coinbaseInput.scriptSig << Script::Data(blockHeight, 3)
                            << 0 << 0 << 0 << 0;
    coinbaseInput.sequence = 0;
-   coinbaseTxn.outputs.resize( 1 );
-   auto& coinbaseOutput = coinbaseTxn.outputs[0];
+   coinbaseTxn->outputs.resize( 1 );
+   auto& coinbaseOutput = coinbaseTxn->outputs[0];
    coinbaseOutput.value = coinbaseValue;
    coinbaseOutput.scriptPubKey << OP_DUP << OP_HASH160
                                << Script::Data(pubKeyHash)
                                << OP_EQUALVERIFY << OP_CHECKSIG;
-   coinbaseTxn.lockTime = 0;
+   coinbaseTxn->lockTime = 0;
    return coinbaseTxn;
 }
 
-Transaction Transaction::deserialize( const std::string& serializedTxnStr )
+TransactionPtr Transaction::deserialize( const std::string& serializedTxnStr )
 {
-   Transaction txn;
+   TransactionPtr txn( new Transaction );
    std::istringstream txnSerialStream( serializedTxnStr );
 
-   txn.version = readInt<int>( txnSerialStream );
+   txn->version = readInt<int>( txnSerialStream );
 
    // Load inputs
-   txn.inputs.resize( readVarInt(txnSerialStream) );
-   for( auto& input : txn.inputs )
+   txn->inputs.resize( readVarInt(txnSerialStream) );
+   for( auto& input : txn->inputs )
       input.deserialize( txnSerialStream );
 
    // Load outputs
-   txn.outputs.resize( readVarInt(txnSerialStream) );
-   for( auto& output : txn.outputs )
+   txn->outputs.resize( readVarInt(txnSerialStream) );
+   for( auto& output : txn->outputs )
       output.deserialize( txnSerialStream );
 
-   txn.lockTime = readInt<int>( txnSerialStream );
+   txn->lockTime = readInt<int>( txnSerialStream );
 
    return txn;
 }

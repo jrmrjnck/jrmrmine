@@ -30,8 +30,7 @@ public:
    Block( int version, int time, int bits );
 
    void setPrevBlockHash( const ByteArray& prevBlockHash );
-   void appendTransaction( const Transaction& txn );
-   void appendTransactionHash( const ByteArray& txnId );
+   void appendTransaction( std::unique_ptr<Transaction> txn );
 
    void updateHeader();
 
@@ -43,6 +42,7 @@ public:
 
 private:
    MerkleTree  _merkleTree;
+   std::vector<std::unique_ptr<Transaction>> _txns;
 };
 
 #endif // !BLOCK_H
