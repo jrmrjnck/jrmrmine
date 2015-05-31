@@ -31,6 +31,9 @@ public:
 
    Result mine( Block& block );
 
+protected:
+   virtual Result _mine( const Sha256& preHash, const ByteArray& reverseTarget, uint32_t& nonce ) = 0;
+
 public:
    static MinerPtr createInstance( const std::string& typeName = std::string() );
 

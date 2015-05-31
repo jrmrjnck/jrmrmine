@@ -74,10 +74,9 @@ void writeVarInt( std::ostream& ss, int64_t n )
 }
 
 // See bitcoin/bitnum.h/CBigNum::SetCompact
-// Returns big-endian string
-string bitsToTarget( uint32_t bits )
+ByteArray bitsToTarget( uint32_t bits )
 {
-   string res( 32, 0 );
+   ByteArray result( 32 );
 
    // Most significant 8 bits are the unsigned exponent, base 256
    int size = bits >> 24;
@@ -87,22 +86,22 @@ string bitsToTarget( uint32_t bits )
 
    if( size <= 3 )
    {
-      word >>= 8*(3-size);
-      res[31] = word & 0xFF; word >>= 8;
-      res[30] = word & 0xFF; word >>= 8;
-      res[29] = word & 0xFF; word >>= 8;
-      res[28] = word & 0xFF;
+      word >>= 8 * (3 - size);
+      result[31] = word & 0xFF; word >>= 8;
+      result[30] = word & 0xFF; word >>= 8;
+      result[29] = word & 0xFF; word >>= 8;
+      result[28] = word & 0xFF;
    }
    else
    {
       int shf = size - 3;
-      res[31-shf] = word & 0xFF; word >>= 8;
-      res[30-shf] = word & 0xFF; word >>= 8;
-      res[29-shf] = word & 0xFF; word >>= 8;
-      res[28-shf] = word & 0xFF;
+      result[31 - shf] = word & 0xFF; word >>= 8;
+      result[30 - shf] = word & 0xFF; word >>= 8;
+      result[29 - shf] = word & 0xFF; word >>= 8;
+      result[28 - shf] = word & 0xFF;
    }
 
-   return res;
+   return result;
 }
 
 int hexToInt( char c )

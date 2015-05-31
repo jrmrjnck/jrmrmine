@@ -19,7 +19,7 @@ typedef std::vector<uint8_t>  ByteArray;
 
 void reverseHexBytes( std::string& ba );
 
-std::string bitsToTarget( uint32_t bits );
+ByteArray bitsToTarget( uint32_t bits );
 int hexToInt( char c );
 ByteArray hexStringToBinary( const std::string& str );
 std::ostream& operator <<( std::ostream& outputStream, const ByteArray& byteArray );

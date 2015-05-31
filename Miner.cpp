@@ -4,6 +4,9 @@
 
 #include "Miner.h"
 
+#include <cstddef>
+#include <algorithm>
+
 struct  MinerRegistry
 {
    static MinerRegistry& get()
@@ -52,5 +55,14 @@ std::vector<std::string> Miner::types()
 
 Miner::Result Miner::mine( Block& block )
 {
-   return NoSolutionFound;
+   // Precompute as much hash as possible
+   Sha256 hash;
+   hash.update( &block.header, offsetof(Block::Header, nonce) * CHAR_BIT );
+
+   auto target = bitsToTarget( block.header.bits );
+   std::reverse( target.begin(), target.end() );
+
+   auto result = _mine( hash, target, block.header.nonce );
+
+   return result;
 }
