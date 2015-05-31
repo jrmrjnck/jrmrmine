@@ -123,6 +123,16 @@ void MerkleTree::append( const ByteArray& hash )
 
 ByteArray MerkleTree::rootHash()
 {
+   if( _rootNode->isLeaf() )
+   {
+      return ByteArray();
+   }
+
+   if( _rootNode->leftChild != nullptr && _rootNode->rightChild == nullptr )
+   {
+      return _rootNode->leftChild->hash;
+   }
+
    _rootNode->update();
    return _rootNode->hash;
 }
