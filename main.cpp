@@ -25,11 +25,8 @@
 
 using namespace std;
 
-std::unique_ptr<Block> createBlockTemplate()
+std::unique_ptr<Block> createBlockTemplate( JsonRpc& rpc )
 {
-   JsonRpc rpc( Settings::RpcHost(), Settings::RpcPort(),
-                Settings::RpcUser(), Settings::RpcPassword() );
-
    // Get block template
    Json::Value params;
    params[0u]["capabilities"] = Json::arrayValue;
@@ -77,11 +74,24 @@ std::unique_ptr<Block> createBlockTemplate()
    return block;
 }
 
+Json::Value submitBlock( JsonRpc& rpc, const Block& block )
+{
+   std::ostringstream stream;
+   block.serialize( stream );
+
+   Json::Value params;
+   params[0] = stream.str();
+   return rpc.call( "submitblock", params );
+}
+
 int main( int argc, char** argv )
 {
    try
    {
       Settings::init( argc, argv );
+
+      JsonRpc rpc( Settings::RpcHost(), Settings::RpcPort(),
+                   Settings::RpcUser(), Settings::RpcPassword() );
 
       auto miner = Miner::createInstance( Settings::minerType() );
       if( miner == nullptr )
@@ -89,13 +99,23 @@ int main( int argc, char** argv )
          throw runtime_error( "Miner implementation doesn't exist" );
       }
 
-      auto block = createBlockTemplate();
+      auto block = createBlockTemplate( rpc );
 
       if( miner->mine(*block) == Miner::SolutionFound )
       {
          std::cout << "Solution found: " << std::endl
                    << "\tHeader: " << block->headerData() << std::endl
                    << "\tHash:   " << Sha256::doubleHash( &block->header, sizeof(block->header) ) << std::endl;
+
+         auto result = submitBlock( rpc, *block );
+         if( !result.isNull() )
+         {
+            std::cout << "Solution rejected! (" << result.asString() << ")" << std::endl;
+         }
+         else
+         {
+            std::cout << "Solution accepted!" << std::endl;
+         }
       }
       else
       {
