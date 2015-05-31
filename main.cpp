@@ -59,6 +59,9 @@ std::unique_ptr<Block> createBlockTemplate()
    block->header.version = blockTemplate["version"].asInt();
    block->header.time = blockTemplate["curtime"].asInt();
    block->header.bits = stoi( blockTemplate["bits"].asString(), nullptr, 16 );
+   auto prevBlockHash = hexStringToBinary( blockTemplate["previousblockhash"].asString() );
+   std::reverse( prevBlockHash.begin(), prevBlockHash.end() );
+   block->setPrevBlockHash( prevBlockHash );
    // Add all the transactions
    block->appendTransaction( std::move(coinbaseTxn) );
    auto txnArray = blockTemplate["transactions"];
