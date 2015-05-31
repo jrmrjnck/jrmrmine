@@ -20,10 +20,16 @@ class Miner
 public:
    typedef MinerPtr (*CreateInstanceFn)();
 
+   enum Result
+   {
+      SolutionFound,
+      NoSolutionFound
+   };
+
 public:
    virtual ~Miner() = 0;
 
-   bool mine( Block& block );
+   Result mine( Block& block );
 
 public:
    static MinerPtr createInstance( const std::string& typeName = std::string() );

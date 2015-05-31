@@ -50,7 +50,7 @@ std::vector<std::string> Miner::types()
    return result;
 }
 
-bool Miner::mine( Block& block )
+Miner::Result Miner::mine( Block& block )
 {
-   return false;
+   return NoSolutionFound;
 }

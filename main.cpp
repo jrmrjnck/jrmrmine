@@ -88,7 +88,7 @@ int main( int argc, char** argv )
 
       auto block = createBlockTemplate();
 
-      if( miner->mine( *block ) )
+      if( miner->mine(*block) == Miner::SolutionFound )
       {
          std::cout << "Solution found: " << std::endl
                    << "\tHeader: " << block->headerData() << std::endl
