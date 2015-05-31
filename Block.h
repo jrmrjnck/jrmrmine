@@ -34,8 +34,10 @@ public:
 
    void updateHeader();
 
-   ByteArray headerData();
+   ByteArray headerData() const;
    ByteArray merkleRoot();
+
+   void serialize( std::ostream& serialStream ) const;
 
 public:
    Header   header;

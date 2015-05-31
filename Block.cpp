@@ -45,15 +45,25 @@ ByteArray Block::merkleRoot()
    return _merkleTree.rootHash();
 }
 
-ByteArray Block::headerData()
+ByteArray Block::headerData() const
 {
    ByteArray data;
    data.reserve( sizeof(header) );
 
    for( unsigned i = 0; i < sizeof(header); ++i )
    {
-      data.push_back( reinterpret_cast<uint8_t*>(&header)[i] );
+      data.push_back( reinterpret_cast<const uint8_t*>(&header)[i] );
    }
 
    return data;
+}
+
+void Block::serialize( std::ostream& serialStream ) const
+{
+   serialStream << headerData();
+   writeVarInt( serialStream, _txns.size() );
+   for( auto& txn : _txns )
+   {
+      txn->serialize( serialStream );
+   }
 }
