@@ -139,7 +139,7 @@ Json::Value JsonRpc::call( const std::string& method, const Json::Value& params 
       throw runtime_error( "No data received from server" );
 
    if( !success )
-      throw runtime_error( reader.getFormatedErrorMessages() );
+      throw runtime_error( reader.getFormattedErrorMessages() );
 
    if( !response.isObject() || !response.isMember("result") || !response.isMember("error") || !response.isMember("id") )
       throw runtime_error( "Invalid response received from JSON-RPC server" );
