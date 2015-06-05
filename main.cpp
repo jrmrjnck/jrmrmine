@@ -25,7 +25,7 @@
 
 using namespace std;
 
-std::unique_ptr<Block> createBlockTemplate( JsonRpc& rpc )
+std::unique_ptr<Block> createBlockTemplate( JsonRpc& rpc, const ByteArray& coinbasePubKeyHash )
 {
    // Get block template
    Json::Value params;
@@ -34,15 +34,6 @@ std::unique_ptr<Block> createBlockTemplate( JsonRpc& rpc )
 
    if( blockTemplate.isMember("coinbasetxn") )
       throw std::runtime_error( "Coinbase txn already exists" );
-
-   // Get coinbase destination
-   params.clear();
-   params[0u] = "Mining Coinbase";
-   auto coinbaseAddress = rpc.call( "getaccountaddress", params ).asString();
-   // Convert address to pubkey hash
-   auto coinbasePubKeyHash = Radix::base58DecodeCheck( coinbaseAddress );
-   // Remove leading version byte
-   coinbasePubKeyHash.erase( coinbasePubKeyHash.begin() );
 
    auto coinbaseValue = blockTemplate["coinbasevalue"].asInt64();
 
@@ -84,6 +75,55 @@ Json::Value submitBlock( JsonRpc& rpc, const Block& block )
    return rpc.call( "submitblock", params );
 }
 
+Miner::Result mineSingleBlock( JsonRpc& rpc, Miner& miner, const ByteArray& coinbasePubKeyHash )
+{
+   auto block = createBlockTemplate( rpc, coinbasePubKeyHash );
+
+   auto result = miner.mine( *block );
+   if( result == Miner::SolutionFound )
+   {
+      std::cout << "Solution found: " << std::endl
+         << "\tHeader: " << block->headerData() << std::endl
+         << "\tHash:   " << Sha256::doubleHash( &block->header, sizeof(block->header) ) << std::endl;
+
+      auto response = submitBlock( rpc, *block );
+      if( !response.isNull() )
+      {
+         std::cout << "Solution rejected! (" << response.asString() << ")" << std::endl;
+         return Miner::NoSolutionFound;
+      }
+      else
+      {
+         std::cout << "Solution accepted!" << std::endl;
+      }
+   }
+   else
+   {
+      std::cout << "No solution found" << std::endl;
+      // TODO: fiddle with extranonce and continue
+   }
+
+   return result;
+}
+
+void doMining( JsonRpc& rpc, Miner& miner )
+{
+   // Get coinbase destination
+   Json::Value params;
+   params[0] = "Mining Coinbase";
+   auto coinbaseAddress = rpc.call( "getaccountaddress", params ).asString();
+   // Convert address to pubkey hash
+   auto coinbasePubKeyHash = Radix::base58DecodeCheck( coinbaseAddress );
+   // Remove leading version byte
+   coinbasePubKeyHash.erase( coinbasePubKeyHash.begin() );
+
+   auto result = Miner::SolutionFound;
+   while( result == Miner::SolutionFound )
+   {
+      result = mineSingleBlock( rpc, miner, coinbasePubKeyHash );
+   }
+}
+
 int main( int argc, char** argv )
 {
    try
@@ -99,28 +139,7 @@ int main( int argc, char** argv )
          throw runtime_error( "Miner implementation doesn't exist" );
       }
 
-      auto block = createBlockTemplate( rpc );
-
-      if( miner->mine(*block) == Miner::SolutionFound )
-      {
-         std::cout << "Solution found: " << std::endl
-                   << "\tHeader: " << block->headerData() << std::endl
-                   << "\tHash:   " << Sha256::doubleHash( &block->header, sizeof(block->header) ) << std::endl;
-
-         auto result = submitBlock( rpc, *block );
-         if( !result.isNull() )
-         {
-            std::cout << "Solution rejected! (" << result.asString() << ")" << std::endl;
-         }
-         else
-         {
-            std::cout << "Solution accepted!" << std::endl;
-         }
-      }
-      else
-      {
-         std::cout << "No solution found" << std::endl;
-      }
+      doMining( rpc, *miner );
 
       return EXIT_SUCCESS;
    }
