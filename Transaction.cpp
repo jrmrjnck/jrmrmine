@@ -107,7 +107,7 @@ TransactionPtr Transaction::createCoinbase( int blockHeight,
    auto& coinbaseInput = coinbaseTxn->inputs[0];
    coinbaseInput.prevHash.fill( 0 );
    coinbaseInput.prevN = -1;
-   coinbaseInput.scriptSig << Script::Data(blockHeight, 3)
+   coinbaseInput.scriptSig << Script::Data(blockHeight)
                            << 0 << 0 << 0 << 0;
    coinbaseInput.sequence = 0;
    coinbaseTxn->outputs.resize( 1 );

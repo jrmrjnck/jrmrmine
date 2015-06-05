@@ -22,14 +22,13 @@ public:
       friend class Script;
 
    public:
-      Data( int64_t value, int size );
-      Data( const void* data, int size );
+      Data( int64_t value );
       Data( const ByteArray& byteArray );
 
    private:
       int64_t        _intData;
       const void*    _data;
-      int            _size;
+      size_t         _size;
    };
 
 public:

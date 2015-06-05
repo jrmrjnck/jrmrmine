@@ -6,22 +6,23 @@
 
 #include <cassert>
 
-Script::Data::Data( int64_t value, int size )
+Script::Data::Data( int64_t value )
 {
    _data = nullptr;
    _intData = value;
-   _size = size;
-}
+   _size = 0;
 
-Script::Data::Data( const void* data, int size )
-{
-   _data = data;
-   _size = size;
+   // See how many bytes are required to hold the value
+   // i.e. discard the top zero bytes
+   while( (value & ((1 << (++_size * 8)) - 1)) != value );
+
+   assert( _size <= sizeof(value) );
 }
 
 Script::Data::Data( const ByteArray& byteArray )
- : Data( byteArray.data(), byteArray.size() )
 {
+   _data = byteArray.data();
+   _size = byteArray.size();
 }
 
 Script& Script::operator <<( const Data& data )
@@ -29,11 +30,12 @@ Script& Script::operator <<( const Data& data )
    assert( data._size <= 75 );
    push_back( data._size );
 
+   assert( isLittleEndian() );
    auto src = reinterpret_cast<const uint8_t*>((data._data != nullptr)
                                                ? data._data
                                                : &data._intData
                                                );
-   for( int i = 0; i < data._size; ++i )
+   for( unsigned i = 0; i < data._size; ++i )
    {
       push_back( src[i] );
    }
