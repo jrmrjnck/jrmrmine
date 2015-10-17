@@ -109,9 +109,7 @@ Miner::Result mineSingleBlock( JsonRpc& rpc, Miner& miner, const ByteArray& coin
 void doMining( JsonRpc& rpc, Miner& miner, int blocksToMine )
 {
    // Get coinbase destination
-   Json::Value params;
-   params[0] = "Mining Coinbase";
-   auto coinbaseAddress = rpc.call( "getaccountaddress", params ).asString();
+   auto coinbaseAddress = rpc.call( "getnewaddress" ).asString();
    // Convert address to pubkey hash
    auto coinbasePubKeyHash = Radix::base58DecodeCheck( coinbaseAddress );
    // Remove leading version byte
