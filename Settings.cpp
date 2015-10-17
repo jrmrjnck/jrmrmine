@@ -21,6 +21,7 @@ static BoostProgOpt::variables_map _varMap;
 #define OPT_DEBUG    "debug"
 #define OPT_CONFIG   "config"
 #define OPT_TYPE     "type"
+#define OPT_BLOCKS   "blocks"
 
 #define OPT_RPCHOST     "rpchost"
 #define OPT_RPCPORT     "rpcport"
@@ -35,6 +36,7 @@ void Settings::init( int argc, char** argv )
       (OPT_DEBUG",d",   "Show debug output.")
       (OPT_CONFIG",c",  BoostProgOpt::value<string>()->default_value(defaultConfigFile()), "Bitcoin Core configuration file to load.")
       (OPT_TYPE",t",    BoostProgOpt::value<string>()->default_value("cpu"), typeHelpText().c_str())
+      (OPT_BLOCKS",n",  BoostProgOpt::value<int>()->default_value(0), "Number of blocks to mine (0 = unlimited).")
       ;
 
    BoostProgOpt::options_description coreOptions( "Bitcoin Core Options" );
@@ -119,4 +121,9 @@ const std::string& Settings::minerType()
 bool Settings::debug()
 {
    return _varMap.count( OPT_DEBUG );
+}
+
+int Settings::numBlocks()
+{
+   return _varMap[OPT_BLOCKS].as<int>();
 }

@@ -106,7 +106,7 @@ Miner::Result mineSingleBlock( JsonRpc& rpc, Miner& miner, const ByteArray& coin
    return result;
 }
 
-void doMining( JsonRpc& rpc, Miner& miner )
+void doMining( JsonRpc& rpc, Miner& miner, int blocksToMine )
 {
    // Get coinbase destination
    Json::Value params;
@@ -118,7 +118,7 @@ void doMining( JsonRpc& rpc, Miner& miner )
    coinbasePubKeyHash.erase( coinbasePubKeyHash.begin() );
 
    auto result = Miner::SolutionFound;
-   while( result == Miner::SolutionFound )
+   while( result == Miner::SolutionFound && blocksToMine-- > 0 )
    {
       result = mineSingleBlock( rpc, miner, coinbasePubKeyHash );
    }
@@ -139,7 +139,13 @@ int main( int argc, char** argv )
          throw runtime_error( "Miner implementation doesn't exist" );
       }
 
-      doMining( rpc, *miner );
+      int blocksToMine = Settings::numBlocks();
+      if( blocksToMine == 0 )
+      {
+         blocksToMine = std::numeric_limits<int>::max();
+      }
+
+      doMining( rpc, *miner, blocksToMine );
 
       return EXIT_SUCCESS;
    }

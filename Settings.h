@@ -19,6 +19,7 @@ public:
    static std::string RpcPassword();
 
    static const std::string& minerType();
+   static int numBlocks();
 
    static std::string defaultConfigFile();
    static std::string minerTypes();
