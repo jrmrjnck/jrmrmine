@@ -12,22 +12,56 @@
 #include <iostream>
 #include <iomanip>
 
-const Radix::Alphabet BASE_58_ALPHABET = {
-   "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz",
+const int ALPHABET_INVALID_LETTER = -1;
+
+// The "system radix" corresponds to the range of the smallest addressable unit,
+// aka char in C. Data converted to system radix will therefore look like its
+// raw big-endian representation.
+const int SYSTEM_RADIX = 1 << CHAR_BIT;
+
+const Radix::Alphabet BASE_58_ALPHABET(
+   "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+   );
+
+Radix::Alphabet::Alphabet( const std::string& encodeTable )
+ : _encodeTable( encodeTable )
+{
+   // Need to find bounds manually since characters in the alphabet may be
+   // out-of-order relative to their numeric value.
+   _lowerBound = std::numeric_limits<char>::max();
+   _upperBound = 0;
+
+   for( char ch : encodeTable )
    {
-   /* 1-9 */ 0, 1, 2, 3, 4, 5, 6, 7, 8,
-   /* :-@ */ -1, -1, -1, -1, -1, -1, -1,
-   /* A-Z */ 9, 10, 11, 12, 13, 14, 15, 16, -1, 17, 18, 19, 20, 21, -1, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32,
-   /* [-` */ -1, -1, -1, -1, -1, -1,
-   /* a-z */ 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, -1, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57
+      if( ch < _lowerBound )
+      {
+         _lowerBound = ch;
+      }
+
+      if( ch > _upperBound )
+      {
+         _upperBound = ch;
+      }
    }
-};
+
+   // The decode table will be larger than the encode table if there are gaps
+   // in the alphabet.
+   int alphabetRange = _upperBound - _lowerBound;
+   _decodeTable.resize( alphabetRange, ALPHABET_INVALID_LETTER );
+
+   for( unsigned int i = 0; i < _encodeTable.size(); ++i )
+   {
+      char ch = _encodeTable[i];
+      _decodeTable[ch - _lowerBound] = i;
+   }
+}
 
 ByteArray Radix::base58DecodeCheck( const std::string& base58Str )
 {
-   ByteArray input = decodeAlphabet( base58Str, BASE_58_ALPHABET );
+   const Alphabet& srcAlphabet = BASE_58_ALPHABET;
 
-   ByteArray output = convert( input, 58, 256 );
+   ByteArray input = decodeAlphabet( base58Str, srcAlphabet );
+   ByteArray output = convert( input, srcAlphabet._encodeTable.size(), SYSTEM_RADIX );
 
    // If we have enough data to constitute a payload, do a
    // SHA256(SHA256(payload)) check
@@ -50,13 +84,13 @@ ByteArray Radix::decodeAlphabet( const std::string& inputStr, const Alphabet& al
    ByteArray output;
    output.reserve( inputStr.size() );
 
-   for( auto ch : inputStr )
+   for( int ch : inputStr )
    {
-      ch -= alphabet.encodeTable[0];
-      assert( ch >= 0 && ch <= alphabet.encodeTable.back() );
+      ch -= alphabet._lowerBound;
+      assert( ch >= 0 && ch <= alphabet._upperBound );
 
-      int value = alphabet.decodeTable[ch];
-      assert( value != -1 );
+      int value = alphabet._decodeTable[ch];
+      assert( value != ALPHABET_INVALID_LETTER );
 
       output.push_back( value );
    }
@@ -66,8 +100,8 @@ ByteArray Radix::decodeAlphabet( const std::string& inputStr, const Alphabet& al
 
 ByteArray Radix::convert( const ByteArray& input, int srcRadix, int destRadix )
 {
-   assert( srcRadix <= 256 );
-   assert( destRadix <= 256 );
+   assert( srcRadix <= SYSTEM_RADIX );
+   assert( destRadix <= SYSTEM_RADIX );
 
    auto it = std::find_if( input.begin(), input.end(), [](int8_t a){return a != 0;} );
    int inputSize = input.size() - (it - input.begin());
